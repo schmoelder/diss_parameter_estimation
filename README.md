@@ -71,4 +71,4 @@ Fragen an Lukas:
 - Measurement: UV
 
 The output repository can be found at:
-[output_repo]() (not actually set yet because no remote has been configured at this moment
+[output_repo](https://jugit.fz-juelich.de/j.schmoelder/parameter_estimation_output)
