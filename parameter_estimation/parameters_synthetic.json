@@ -1,0 +1,90 @@
+{
+    "mixer": {
+        "init_liquid_volume": 1e-7
+    },
+    "tubing_pre_injection": {
+        "length": 1,
+        "diameter": 0.00075,
+        "axial_dispersion": 1e-8,
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "sample_loop": {
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "tubing_pre_column": {
+        "length": 1,
+        "diameter": 0.00075,
+        "axial_dispersion": 1e-3,
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "column": {
+        "axial_dispersion": {
+            "Acetone": 1e-8,
+            "Blue Dextran": 1e-8,
+            "Lysozyme": 1e-8,
+            "Salt": 1e-8,
+            "NaOH": 1e-8
+        },
+        "bed_porosity": 0.3,
+        "particle_radius": 1.7e-5,
+        "particle_porosity": 0.8,
+        "film_diffusion": {
+            "Acetone": 1.0,
+            "Blue Dextran": 0,
+            "Lysozyme": 1.0,
+            "Salt": 1.0,
+            "NaOH": 1.0
+        },
+        "pore_diffusion": {
+            "Acetone": 1e-9,
+            "Blue Dextran": 0,
+            "Lysozyme": 1e-6,
+            "Salt": 1e-6,
+            "NaOH": 1e-6
+        },
+        "binding_model": {
+            "adsorption_rate": {
+                "Lysozyme": 1e-6,
+                "Salt": 1
+            },
+            "desorption_rate": {
+                "Lysozyme": 1,
+                "Salt": 1
+            },
+            "characteristic_charge": {
+                "Lysozyme": 5,
+                "Salt": 1
+            },
+            "steric_factor": {
+                "Lysozyme": 0,
+                "Salt": 0
+            }
+        },
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "tubing_post_column": {
+        "length": 0.4,
+        "diameter": 0.00075,
+        "axial_dispersion": 1e-3,
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "tubing_detectors": {
+        "length": 1,
+        "diameter": 0.00075,
+        "axial_dispersion": 1e-4,
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "total_capacity": 0.001
+}
