@@ -1,10 +1,10 @@
-name: rdm_example
+name: diss_parameter_estimation
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
-  - cadet
+  - python=3.12
+  - cadet>=5.0
   - pip
   - pip:
-      - cadet-process
+      - cadet-process>=0.10.1
       - cadet-rdm
