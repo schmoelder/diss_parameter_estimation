@@ -61,8 +61,8 @@ def plot():
         markersize=12
     )
     ax.plot(x, y, 'k')
-    ax.set_xlabel(r'Conductivity / $mS~cm^{-1}$')
-    ax.set_ylabel(r'Salt concentration / $mM$')
+    ax.set_xlabel(r'Conductivity / $\text{mS}~\text{cm}^{-1}$')
+    ax.set_ylabel(r'Salt concentration / mM')
 
     fig.tight_layout()
 
