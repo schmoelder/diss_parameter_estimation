@@ -66,6 +66,18 @@ def load_parameters(prior_branch_name: Optional[str]) -> dict:
     return load_parameters_from_previous_run(prior_branch_name)
 
 
+def load_all_parameters(prior_branch_name: str) -> dict:
+    """Return dict with parameters used for each sequential experiment."""
+    parameters = {}
+    while prior_branch_name is not None:
+        case_parameters = load_parameters(prior_branch_name)
+        name = case_parameters["case"]
+        parameters[name] = case_parameters
+        prior_branch_name = case_parameters["prior_branch_name"]
+
+    return parameters
+
+
 def save_parameters(parameters: dict, use_synthetic_data: bool = False) -> None:
     """Save parameters to file."""
     file_name = "parameters"
