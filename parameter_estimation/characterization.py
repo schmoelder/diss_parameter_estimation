@@ -209,7 +209,7 @@ class CharacterizeParticles(CharacterizeBase):
             variables.append({
                 "name": "axial_dispersion",
                 "parameter_path": "flow_sheet.column.axial_dispersion",
-                "lb": 1e-11, "ub": 1e-7,
+                "lb": 1e-9, "ub": 1e-5,
                 "indices": [component_index],
                 "transform": "auto"
             })
@@ -224,7 +224,7 @@ class CharacterizeParticles(CharacterizeBase):
             variables.append({
                 "name": "film_diffusion",
                 "parameter_path": "flow_sheet.column.film_diffusion",
-                "lb": 1e-7, "ub": 1e-4,
+                "lb": 1e-7, "ub": 1e-3,
                 "indices": [component_index],
                 "transform": "auto"
             })
