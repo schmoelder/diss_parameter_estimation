@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, NoReturn, Type
+from typing import Any, Literal, Optional, Type
 
 import numpy as np
 
@@ -46,7 +46,7 @@ class CharacterizeBase(OptimizationProblem):
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         reference_configs: ReferenceConfig | list[ReferenceConfig],
         variables: list[dict[str, Any]],
-    ) -> NoReturn:
+    ) -> None:
 
         # Ensure processes is always a list
         if not isinstance(processes, list):
@@ -100,7 +100,7 @@ class CharacterizeTubing(CharacterizeBase):
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         tubing: str,
         reference_configs: ReferenceConfig | list[ReferenceConfig],
-    ) -> NoReturn:
+    ) -> None:
 
         super().__init__(
             name=name,
@@ -131,7 +131,7 @@ class CharacterizePreInjection(CharacterizeBase):
         name: str,
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         reference_configs: ReferenceConfig | list[ReferenceConfig],
-    ) -> NoReturn:
+    ) -> None:
 
         super().__init__(
             name=name,
@@ -168,7 +168,7 @@ class CharacterizeBed(CharacterizeBase):
         name: str,
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         reference_configs: ReferenceConfig | list[ReferenceConfig],
-    ) -> NoReturn:
+    ) -> None:
         super().__init__(
             name=name,
             processes=processes,
@@ -203,7 +203,7 @@ class CharacterizeParticles(CharacterizeBase):
         include_film_diffusion: Optional[bool] = False,
         include_pore_diffusion: Optional[bool] = False,
         component_index: Optional[int] = 0,
-    ) -> NoReturn:
+    ) -> None:
         variables = []
         if include_axial_dispersion:
             variables.append({
@@ -256,7 +256,7 @@ class CharacterizeCapacity(CharacterizeBase):
         name: str,
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         reference_configs: ReferenceConfig | list[ReferenceConfig],
-    ) -> NoReturn:
+    ) -> None:
         super().__init__(
             name=name,
             processes=processes,
@@ -284,25 +284,10 @@ class CharacterizeAdsorptionParameters(CharacterizeBase):
         include_film_diffusion: Optional[bool] = False,
         include_pore_diffusion: Optional[bool] = False,
         component_index: Optional[int] = 0,
-    ) -> NoReturn:
+    ) -> None:
         column = processes[0].flow_sheet.column
-        cv = column.volume
-
         binding_model = column.binding_model
         lambda_ = binding_model.capacity
-
-        nu_lb = 1
-        nu_ub = 10
-
-        buffer_a = processes[0].flow_sheet.buffer_a
-        cs_low = buffer_a.c[0, 0]
-        flow_rate = processes[0].section_states[0.0]["flow_sheet.buffer_a.flow_rate"][0][0]
-
-        buffer_b = processes[0].flow_sheet.buffer_b
-        cs_high = buffer_b.c[0, 0]
-
-        grad_fast = (cs_high - cs_low) / (flow_rate * processes[0].delta_t_elute / cv)
-        grad_slow = (cs_high - cs_low) / (flow_rate * processes[-1].delta_t_elute / cv)
 
         for process in processes:
             process.flow_sheet.column.binding_model.is_kinetic = is_kinetic
@@ -418,7 +403,34 @@ class CharacterizeAdsorptionParameters(CharacterizeBase):
         return (c_s**(nu+1) * lambda_**(-nu))/(grad * (nu + 1))
 
 
-# %% Run optimization
+# %% Configure processes/references/comparators
+
+def update_processes(
+    knauer_processes: KnauerSystemProcess | list[KnauerSystemProcess],
+    prior_parameters: dict,
+) -> list[KnauerSystemProcess]:
+    """
+    Update system parameters for the given Knauer system processes.
+
+    Parameters
+    ----------
+    knauer_processes : KnauerSystemProcess | list[KnauerSystemProcess]
+        A list of Knauer system processes to be characterized.
+    prior_parameters : dict
+        The prior process parameters.
+
+    Returns
+    -------
+    list[KnauerSystemProcess]
+        The updated Knauer system processes.
+    """
+    if not isinstance(knauer_processes, list):
+        knauer_processes = [knauer_processes]
+
+    for process in knauer_processes:
+        update_process_parameters(process, prior_parameters)
+    return knauer_processes
+
 
 def setup_reference_configs(
     knauer_processes: KnauerSystemProcess | list[KnauerSystemProcess],
@@ -457,6 +469,9 @@ def setup_reference_configs(
     list[ReferenceConfig]
         A list of configured reference configurations.
     """
+    if not isinstance(knauer_processes, list):
+        knauer_processes = [knauer_processes]
+
     # Generate or load reference data
     if use_synthetic_data:
         references = [
@@ -545,6 +560,8 @@ def setup_comparators(
     return comparators
 
 
+# %% Configure and run Optimizer
+
 def setup_optimizer(
     optimization_problem: OptimizationProblem,
     optimizer_options: dict,
@@ -570,10 +587,12 @@ def setup_optimizer(
     ValueError
         If the specified optimizer is unknown.
     """
+    optimizer_options = optimizer_options or {}
+
     if optimizer_options["optimizer"] == "U_NSGA3":
         optimizer = U_NSGA3()
         default_options = {
-            "n_cores": 16,
+            "n_cores": -4,
             "pop_size": optimization_problem.n_variables * 32,
             "n_max_gen": 16,
         }
@@ -585,6 +604,109 @@ def setup_optimizer(
         setattr(optimizer, key, value)
 
     return optimizer
+
+
+def setup_characterization(
+    knauer_processes: list[KnauerSystemProcess],
+    CharacterizationType: Type[CharacterizeBase],
+    reference_configs: list,
+    characterization_options: Optional[dict] = None,
+) -> CharacterizeBase:
+    """
+    Initialize the characterization object.
+
+    Parameters
+    ----------
+    knauer_processes : list[KnauerSystemProcess]
+        A list of Knauer system processes to be characterized.
+    CharacterizationType : Type[CharacterizeBase]
+        The characterization configuration class to be used.
+    reference_configs : list
+        Reference configurations for the characterization.
+    characterization_options : Optional[dict], optional
+        Additional options for the characterization process. The default is None.
+
+    Returns
+    -------
+    CharacterizeBase
+        The initialized characterization object.
+    """
+    characterization_options = characterization_options or {}
+    name = characterization_options.pop("name", knauer_processes[0].name)
+    settings.working_directory = repo.output_repo.path / name
+    characterization = CharacterizationType(
+        name=name,
+        processes=knauer_processes,
+        reference_configs=reference_configs,
+        **characterization_options,
+    )
+    return characterization
+
+
+def setup_optimization_problem(
+    knauer_processes: KnauerSystemProcess | list[KnauerSystemProcess],
+    CharacterizationType: Type[CharacterizeBase],
+    solution_path: str,
+    components: Optional[list[str]] = None,
+    references: Optional[list[ReferenceIO]] = None,
+    metrics: Optional[list[str]] = None,
+    start_times: Optional[list[float]] = None,
+    end_times: Optional[list[float]] = None,
+    characterization_options: Optional[dict] = None,
+    prior_branch_name: Optional[str] = None,
+) -> tuple[CharacterizeBase, list[KnauerSystemProcess], dict]:
+    """
+    Set up the complete characterization object including processes and reference configurations.
+
+    Parameters
+    ----------
+    knauer_processes : KnauerSystemProcess | list[KnauerSystemProcess]
+        A list of Knauer system processes to be characterized.
+    CharacterizationType : Type[CharacterizeBase]
+        The characterization configuration class to be used.
+    solution_path : str
+        The file path where the solution data will be saved.
+    components : Optional[list[str]]
+        Components used for parameter estimation. The default is None.
+    references : Optional[list[ReferenceIO]]
+        If None, synthetic data is used.
+    metrics : Optional[list[str]], optional
+        List of metrics to be used for evaluation. The default is None.
+    start_times : Optional[list[float]]
+        Start times of references to consider for comparison. The default is None.
+    end_times : Optional[list[float]]
+        End times of references to consider for comparison. The default is None.
+    characterization_options : Optional[dict], optional
+        Additional options for the characterization process. The default is None.
+    prior_branch_name : Optional[str]
+        Name of the output repository branch to be used to load prior parameters.
+        If None are provided, synthetic data is used.
+
+    Returns
+    -------
+    tuple[CharacterizeBase, list[KnauerSystemProcess], dict]
+        The initialized characterization object, updated processes, and prior parameters.
+    """
+    prior_parameters = load_parameters(prior_branch_name)
+    knauer_processes = update_processes(
+        knauer_processes,
+        prior_parameters,
+    )
+    use_synthetic_data = references is None
+    reference_configs = setup_reference_configs(
+        knauer_processes,
+        solution_path,
+        use_synthetic_data,
+        components,
+        references,
+        metrics,
+        start_times,
+        end_times,
+    )
+    characterization = setup_characterization(
+        knauer_processes, CharacterizationType, reference_configs, characterization_options
+    )
+    return characterization, knauer_processes, prior_parameters
 
 
 @tracks_results
@@ -619,9 +741,9 @@ def optimize(
     metrics : Optional[list[str]], optional
         List of metrics to be used for evaluation. The default is None.
     start_times : Optional[list[float]]
-        Start times of references to consider for comparision. The default is None.
+        Start times of references to consider for comparison. The default is None.
     end_times : Optional[list[float]]
-        End times of references to consider for comparision. The default is None.
+        End times of references to consider for comparison. The default is None.
     characterization_options : Optional[dict], optional
         Additional options for the characterization process. The default is None.
     optimizer_options : Optional[dict]
@@ -634,57 +756,30 @@ def optimize(
     -------
     OptimizationResults
         The optimization results containing the estimated parameters.
-
     """
-    use_synthetic_data = references is None
-
-    # Ensure default mutable arguments are properly handled
-    characterization_options = characterization_options or {}
-    optimizer_options = optimizer_options or {}
-
-    # Update system parameters
-    if not isinstance(knauer_processes, list):
-        knauer_processes = [knauer_processes]
-
-    prior_parameters = load_parameters(prior_branch_name)
-
-    for process in knauer_processes:
-        update_process_parameters(process, prior_parameters)
-
-    reference_configs = setup_reference_configs(
+    characterization, knauer_processes, prior_parameters = setup_optimization_problem(
         knauer_processes,
+        CharacterizationType,
         solution_path,
-        use_synthetic_data,
         components,
         references,
         metrics,
         start_times,
         end_times,
+        characterization_options,
+        prior_branch_name,
     )
-
-    # Initialize the characterization object
-    name = characterization_options.pop("name", knauer_processes[0].name)
-    settings.working_directory = repo.output_repo.path / name
-    characterization = CharacterizationType(
-        name=name,
-        processes=knauer_processes,
-        reference_configs=reference_configs,
-        **characterization_options,
-    )
-
-    # Set up and run the optimization
     optimizer = setup_optimizer(
         characterization,
         optimizer_options,
     )
-
     optimization_results = optimizer.optimize(characterization)
 
-    # Save the updated system parameters
+    characterization.set_variables(optimization_results.meta_front.x[0])
+
     updated_parameters = update_parameters(
         prior_parameters, knauer_processes[0], prior_branch_name
     )
-
-    save_parameters(updated_parameters, use_synthetic_data)
+    save_parameters(updated_parameters, references is None)
 
     return optimization_results
