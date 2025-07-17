@@ -20,7 +20,7 @@ from CADETProcess.processModel import (
 )
 
 from e0 import coeffcients
-from calibration import normalize_area, apply_polynomial_calibration
+from calibration import correct_baseline_and_normalize, apply_polynomial_calibration
 from characterization import (
     CharacterizeAdsorptionParameters,
     optimize,
@@ -64,9 +64,11 @@ def setup_references():
             flow_rate=flow_rate,
             time_offset=0,
         )
+
         # Rescale Lysozyme
-        reference_lysozyme = normalize_area(
-            knauer_data.uv_1, n_sample_lysozyme, start, end
+        reference_lysozyme = correct_baseline_and_normalize(
+            knauer_data.uv_1,
+            target_area=n_sample_lysozyme,
         )
         reference_lysozyme.component_system = ComponentSystem(components)
         references_lysozyme.append(reference_lysozyme)

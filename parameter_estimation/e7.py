@@ -17,7 +17,7 @@ Status: done
 
 from CADETProcess.processModel import ComponentSystem, GeneralRateModel, LumpedRateModelWithPores
 from knauer import PulseInjection, KnauerExperimentalData
-from calibration import normalize_area
+from calibration import correct_baseline_and_normalize
 from characterization import CharacterizeParticles, optimize
 from parameters import (
     component_system_lysozyme,
@@ -50,7 +50,9 @@ def setup_reference() -> None:
         flow_rate=flow_rate,
         time_offset=time_offset,
     )
-    reference = normalize_area(knauer_data.uv_1, n_sample_lysozyme)
+    reference = correct_baseline_and_normalize(
+        knauer_data.uv_1, target_area=n_sample_lysozyme
+    )
     reference.component_system = ComponentSystem(components)
     reference.update_solution()
 

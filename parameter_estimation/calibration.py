@@ -7,6 +7,115 @@ from scipy.optimize import curve_fit
 from CADETProcess.reference import ReferenceIO
 
 
+def fit_baseline(
+    time: np.ndarray,
+    signal: np.ndarray,
+    start: Optional[float] = None,
+    end: Optional[float] = None,
+    threshold: float = 0.025,
+) -> np.ndarray:
+    """
+    Estimate baseline by fitting a linear function to the lowest intensity values in a time window.
+
+    Parameters
+    ----------
+    time : ndarray
+        1D array of time points.
+    signal : ndarray
+        1D array of signal values.
+    start : float, optional
+        Start of the time window to consider for baseline fitting. Defaults to time[0].
+    end : float, optional
+        End of the time window. Defaults to time[-1].
+    threshold : float, optional
+        Relative intensity threshold (normalized 0–1) to select baseline points. Default is 0.025.
+
+    Returns
+    -------
+    baseline : ndarray
+        Linear baseline estimate over the entire `time` array.
+
+    Raises
+    ------
+    ValueError
+        If no points are available in the fitting window or baseline region.
+    """
+    if start is None:
+        start = time[0]
+    if end is None:
+        end = time[-1]
+
+    window_idx = np.where((time >= start) & (time <= end))
+    time_window = time[window_idx]
+    signal_window = signal[window_idx]
+
+    if len(time_window) == 0:
+        raise ValueError("Not enough points to fit a baseline.")
+
+    min_val = np.min(signal_window)
+    max_val = np.max(signal_window)
+
+    if max_val == min_val:
+        return np.full_like(signal, min_val)
+
+    normalized = (signal_window - min_val) / (max_val - min_val)
+    baseline_idx = np.where(normalized < threshold)[0]
+
+    if len(baseline_idx) < 2:
+        raise ValueError("Not enough baseline points found under threshold.")
+
+    t_fit = time_window[baseline_idx]
+    s_fit = signal_window[baseline_idx]
+
+    coeffs = np.polyfit(t_fit, s_fit, 1)
+    baseline = np.polyval(coeffs, time)
+
+    return baseline
+
+
+def correct_baseline(
+    reference: ReferenceIO,
+    start: Optional[float] = None,
+    end: Optional[float] = None,
+    threshold: Optional[float] = 0.025,
+) -> ReferenceIO:
+    """
+    Correct baseline by fitting a linear function to the lowest intensity values in a time window.
+
+    Parameters
+    ----------
+    time : ndarray
+        1D array of time points.
+    signal : ndarray
+        1D array of signal values.
+    start : float, optional
+        Start of the time window to consider for baseline fitting. Defaults to time[0].
+    end : float, optional
+        End of the time window. Defaults to time[-1].
+    threshold : float, optional
+        Relative intensity threshold (normalized 0–1) to select baseline points.
+        Default is 0.025.
+
+    Returns
+    -------
+    ReferenceIO
+        A new ReferenceIO object with baseline correction.
+    """
+    calibrated_reference = copy.deepcopy(reference)
+    calibrated_reference.name = f"{reference.name}_calibrated"
+
+    # Extract time and signal data
+    time = reference.time
+    signal = reference.solution
+
+    # Corect for baseline drift
+    baseline = fit_baseline(time, signal, start, end, threshold).reshape(-1, 1)
+    calibrated_reference.solution = reference.solution - baseline
+    calibrated_reference.update_solution()
+
+    return calibrated_reference
+
+
 def normalize_area(
         reference: ReferenceIO,
         target_area: float,
@@ -14,10 +123,7 @@ def normalize_area(
         end: Optional[float] = None,
         ) -> ReferenceIO:
     """
-    Detrend and normalize the peak area of a ReferenceIO object.
-
-    This function finds the baseline by fitting a function to the lower-bound of the
-    data and then applies a scaling factor to match the target peak area.
+    Normalize the peak area of a ReferenceIO object.
 
     Parameters
     ----------
@@ -35,67 +141,36 @@ def normalize_area(
     Returns
     -------
     ReferenceIO
-        A new ReferenceIO object with baseline correction and area normalization.
+        A new ReferenceIO object with normalized area.
     """
     calibrated_reference = copy.deepcopy(reference)
     calibrated_reference.name = f"{reference.name}_calibrated"
 
-    # Extract time and signal data
-    time = reference.time
-    signal = reference.solution
-
-    # Step 1: Account for baseline drift
-    def fit_baseline(
-            time: np.ndarray,
-            signal: np.ndarray,
-            start: Optional[float] = None,
-            end: Optional[float] = None,
-            ) -> np.ndarray:
-        """Estimate baseline by fitting a function to the lowest values."""
-        # Account for peak window
-        if start is None:
-            start = time[0]
-        if end is None:
-            end = time[-1]
-
-        window_indices = np.where((time >= start) & (time <= end))
-        time_window = time[window_indices]
-        signal_window = signal[window_indices]
-
-        if len(time_window) == 0:
-            raise ValueError("Not enough points to fit a baseline.")
-
-        min_val = np.min(signal_window)
-        max_val = np.max(signal_window)
-
-        if max_val == min_val:  # Avoid division by zero
-            return np.ones_like(signal_window, dtype=bool)
-
-        normalized_signal = (signal_window - min_val) / (max_val - min_val)
-
-        # Apply threshold in normalized space
-        threshold = 2.5e-2
-        baseline_indices = np.where((normalized_signal < threshold))
-
-        baseline_time = time_window[baseline_indices[0]]
-        baseline_signal = signal_window[baseline_indices[0]]
-
-        # Fit a linear baseline
-        coefficients = np.polyfit(baseline_time, baseline_signal, 1)
-        baseline_fit = np.polyval(coefficients, time)
-
-        return baseline_fit
-
-    baseline = fit_baseline(time, signal, start, end).reshape(-1, 1)
-    calibrated_reference.solution = reference.solution - baseline
-    calibrated_reference.update_solution()
-
-    # Step 2: Rescale peak to target area
+    # Rescale peak to target area
     rescale = target_area / calibrated_reference.fraction_mass(start, end)
     calibrated_reference.solution = calibrated_reference.solution * rescale
     calibrated_reference.update_solution()
 
     return calibrated_reference
+
+
+def correct_baseline_and_normalize(
+    reference,
+    target_area,
+    start_baseline=None,
+    end_baseline=None,
+    threshold=0.025,
+    start_normalization=None,
+    end_normalization=None,
+):
+    reference = correct_baseline(
+        reference, start_baseline, end_baseline, threshold,
+    )
+    reference = normalize_area(
+        reference, target_area, start_normalization, end_normalization,
+    )
+
+    return reference
 
 
 def polynomial_model(x, *coefficients):
@@ -107,7 +182,7 @@ def polynomial_model(x, *coefficients):
     x : array-like
         Independent variable.
     coefficients : array-like
-        Polynomial coefficients in ascending order of degree.
+        Polynomial coefficients in descending order of degree.
 
     Returns
     -------
@@ -137,7 +212,7 @@ def fit_polynomial(
     Returns
     -------
     list
-        Fitted polynomial coefficients in ascending order of degree.
+        Fitted polynomial coefficients in descending order of degree.
     """
     # Initial guess for the coefficients (can be zeros)
     initial_guess = np.zeros(degree + 1)
@@ -160,7 +235,7 @@ def apply_polynomial_calibration(
     reference : ReferenceIO
         The reference containing sensor data.
     coefficients : np.ndarray
-        Polynomial coefficients in ascending order of degree.
+        Polynomial coefficients in descending order of degree.
 
     Returns
     -------

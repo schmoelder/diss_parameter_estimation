@@ -18,7 +18,7 @@ Status: done
 from CADETProcess.processModel import LumpedRateModelWithPores
 
 from knauer import PulseInjection, KnauerExperimentalData
-from calibration import normalize_area
+from calibration import correct_baseline_and_normalize
 from characterization import (
     CharacterizeParticles,
     optimize,
@@ -59,11 +59,11 @@ def setup_reference():
         flow_rate=flow_rate,
         time_offset=time_offset,
     )
-    reference = normalize_area(
+    reference = correct_baseline_and_normalize(
         knauer_data.uv_1,
-        n_sample_acetone,
-        start=start_peak,
-        end=end_peak,
+        target_area=n_sample_acetone,
+        start_normalization=start_peak,
+        end_normalization=end_peak,
     )
 
     return reference

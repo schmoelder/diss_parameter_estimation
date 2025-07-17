@@ -16,7 +16,7 @@ Status: done
 # %% Imports
 
 from knauer import PulseInjection, KnauerExperimentalData
-from calibration import normalize_area
+from calibration import correct_baseline_and_normalize
 from characterization import (
     CharacterizeTubing,
     optimize,
@@ -51,7 +51,9 @@ def setup_reference():
         flow_rate=flow_rate,
         time_offset=time_offset,
     )
-    reference = normalize_area(knauer_data.conductivity, n_sample_salt)
+    reference = correct_baseline_and_normalize(
+        knauer_data.conductivity, target_area=n_sample_salt
+    )
 
     return reference
 
