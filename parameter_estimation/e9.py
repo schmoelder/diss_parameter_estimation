@@ -130,6 +130,8 @@ def run_optimization(
     lwe_processes,
     references_lysozyme,
     include_film_diffusion=False,
+    start_times=None,
+    end_times=None,
     prior_branch_name=None,
     debug=False,
 ):
@@ -174,6 +176,8 @@ def main(
     include_film_diffusion=False,
     include_pore_diffusion=False,
     is_kinetic=True,
+    start_times=None,
+    end_times=None,
     debug=False,
 ):
     # Setup reference data
@@ -190,6 +194,8 @@ def main(
         lwe_processes,
         references_lysozyme,
         include_film_diffusion,
+        start_times,
+        end_times,
         prior_branch_name,
         debug=debug,
     )
@@ -202,11 +208,15 @@ if __name__ == "__main__":
 
     debug = False
     prior_branch_name = None
+    start_times = None
+    end_times = None
 
     e9_optimization_results, posteriour_branch_name = main(
         prior_branch_name,
         include_film_diffusion,
         include_pore_diffusion,
         is_kinetic,
+        start_times,
+        end_times,
         debug,
     )
