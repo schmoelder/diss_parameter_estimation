@@ -59,7 +59,9 @@ def setup_reference() -> None:
     return reference
 
 
-def setup_process(include_pore_diffusion=False):
+def setup_process(
+    include_pore_diffusion=False,
+):
     """Set up process."""
     name = "e7"
 
@@ -85,6 +87,7 @@ def run_optimization(
     process,
     reference,
     include_axial_dispersion=False,
+    include_film_diffusion=False,
     prior_branch_name=None,
     debug=False,
 ):
@@ -93,7 +96,7 @@ def run_optimization(
 
     characterization_options = {
         "include_particle_porosity": True,
-        "include_film_diffusion": True,
+        "include_film_diffusion": include_film_diffusion,
         "include_pore_diffusion": include_pore_diffusion,
         "include_axial_dispersion": include_axial_dispersion,
         "component_index": 1,
@@ -124,33 +127,42 @@ def run_optimization(
 
 def main(
     prior_branch_name=None,
-    include_pore_diffusion=False,
     include_axial_dispersion=False,
+    include_film_diffusion=False,
+    include_pore_diffusion=False,
     debug=False,
 ):
     # Setup reference data
     reference = None if prior_branch_name is None else setup_reference()
 
     # Setup process
-    process = setup_process(include_pore_diffusion)
+    process = setup_process(
+        include_pore_diffusion,
+    )
 
     # Run optimization
     return run_optimization(
         process,
         reference,
         include_axial_dispersion,
+        include_film_diffusion,
         prior_branch_name,
         debug,
     )
 
 
 if __name__ == "__main__":
-    include_axial_dispersion = False
+    include_axial_dispersion = True
+    include_film_diffusion = False
     include_pore_diffusion = False
 
     debug = False
     prior_branch_name = None
 
     e7_optimization_results, posteriour_branch_name = main(
-        prior_branch_name, include_pore_diffusion, include_axial_dispersion, debug,
+        prior_branch_name,
+        include_axial_dispersion,
+        include_film_diffusion,
+        include_pore_diffusion,
+        debug,
     )
