@@ -145,12 +145,6 @@ class CharacterizePreInjection(CharacterizeBase):
                     "transform": "auto"
                 },
                 {
-                    "name": "tubing_pre_injection_axial_dispersion",
-                    "parameter_path": "flow_sheet.tubing_pre_injection.axial_dispersion",
-                    "lb": 1e-9, "ub": 1e-2,
-                    "transform": "auto"
-                },
-                {
                     "name": "mixer_volume",
                     "parameter_path": "flow_sheet.mixer.init_liquid_volume",
                     "lb": 1e-8, "ub": 1e-5,

@@ -5,7 +5,7 @@
     "tubing_pre_injection": {
         "length": 1,
         "diameter": 0.00075,
-        "axial_dispersion": 1e-8,
+        "axial_dispersion": 0,
         "discretization": {
             "ncol": 100
         }

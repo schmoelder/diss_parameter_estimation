@@ -1,7 +1,7 @@
 """
 # E4: Characterize pre-injection system.
 
-- Parameters: mixer volume, tubing length and axial dispersion
+- Parameters: mixer volume and tubing length
 - Flow sheet: Bypass column
 - Injected component: -
 - Concentration: -
