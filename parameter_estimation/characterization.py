@@ -5,6 +5,7 @@ import numpy as np
 
 from cadetrdm import ProjectRepo
 from CADETProcess import settings
+from CADETProcess.dataStructure import set_nested_value
 from CADETProcess.comparison import Comparator
 from CADETProcess.optimization import (
     OptimizationProblem, OptimizerBase, U_NSGA3, OptimizationResults
@@ -650,6 +651,7 @@ def setup_optimization_problem(
     start_times: Optional[list[float]] = None,
     end_times: Optional[list[float]] = None,
     characterization_options: Optional[dict] = None,
+    parameters_overwrite: Optional[dict] = None,
     prior_branch_name: Optional[str] = None,
 ) -> tuple[CharacterizeBase, list[KnauerSystemProcess], dict]:
     """
@@ -675,6 +677,8 @@ def setup_optimization_problem(
         End times of references to consider for comparison. The default is None.
     characterization_options : Optional[dict], optional
         Additional options for the characterization process. The default is None.
+    parameters_overwrite : Optional[dict]
+        Parameters to be overwritten.
     prior_branch_name : Optional[str]
         Name of the output repository branch to be used to load prior parameters.
         If None are provided, synthetic data is used.
@@ -685,9 +689,16 @@ def setup_optimization_problem(
         The initialized characterization object, updated processes, and prior parameters.
     """
     prior_parameters = load_parameters(prior_branch_name)
+    if parameters_overwrite:
+        for key, value in parameters_overwrite.items():
+            set_nested_value(
+                prior_parameters,
+                key,
+                value,
+            )
+
     knauer_processes = update_processes(
-        knauer_processes,
-        prior_parameters,
+        knauer_processes, prior_parameters
     )
     use_synthetic_data = references is None
     reference_configs = setup_reference_configs(
@@ -717,6 +728,7 @@ def optimize(
     start_times: Optional[list[float]] = None,
     end_times: Optional[list[float]] = None,
     characterization_options: Optional[dict] = None,
+    parameters_overwrite: Optional[dict] = None,
     optimizer_options: Optional[dict] = None,
     prior_branch_name: Optional[str] = None,
 ) -> OptimizationResults:
@@ -743,6 +755,8 @@ def optimize(
         End times of references to consider for comparison. The default is None.
     characterization_options : Optional[dict], optional
         Additional options for the characterization process. The default is None.
+    parameters_overwrite : Optional[dict]
+        Parameters to be overwritten.
     optimizer_options : Optional[dict]
         Additional options for the optimization process. The default is None.
     prior_branch_name : Optional[str]
@@ -764,6 +778,7 @@ def optimize(
         start_times,
         end_times,
         characterization_options,
+        parameters_overwrite,
         prior_branch_name,
     )
     optimizer = setup_optimizer(
