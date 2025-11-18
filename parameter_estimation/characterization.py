@@ -601,7 +601,7 @@ def setup_optimizer(
 
 
 def setup_characterization(
-    knauer_processes: list[KnauerSystemProcess],
+    knauer_processes: KnauerSystemProcess | list[KnauerSystemProcess],
     CharacterizationType: Type[CharacterizeBase],
     reference_configs: list,
     characterization_options: Optional[dict] = None,
@@ -611,7 +611,7 @@ def setup_characterization(
 
     Parameters
     ----------
-    knauer_processes : list[KnauerSystemProcess]
+    knauer_processes : KnauerSystemProcess | list[KnauerSystemProcess]
         A list of Knauer system processes to be characterized.
     CharacterizationType : Type[CharacterizeBase]
         The characterization configuration class to be used.
@@ -625,6 +625,9 @@ def setup_characterization(
     CharacterizeBase
         The initialized characterization object.
     """
+    if not isinstance(knauer_processes, list):
+        knauer_processes = [knauer_processes]
+
     characterization_options = characterization_options or {}
     name = characterization_options.pop("name", knauer_processes[0].name)
     settings.working_directory = repo.output_repo.path / name
