@@ -1,0 +1,71 @@
+{
+    "mixer": {
+        "init_liquid_volume": 1.539e-7
+    },
+    "tubing_pre_injection": {
+        "length": 0.928,
+        "diameter": 0.00075,
+        "axial_dispersion": 2.216e-08,
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "sample_loop": {
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "tubing_pre_column": {
+        "length": 0.852,
+        "diameter": 0.00075,
+        "axial_dispersion": 0.00117,
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "column": {
+        "axial_dispersion": 1.178e-8,
+        "bed_porosity": 0.2997,
+        "particle_radius": 1.7e-5,
+        "particle_porosity": 0.764,
+        "film_diffusion": 1.06e-5,
+        "binding_model": {
+            "adsorption_rate": {
+                "Lysozyme": 0.017759,
+                "Salt": 1.0
+            },
+            "desorption_rate": {
+                "Lysozyme": 1.0,
+                "Salt": 1.0
+            },
+            "characteristic_charge": {
+                "Lysozyme": 5.947586,
+                "Salt": 1.0
+            },
+            "steric_factor": {
+                "Lysozyme": 0.0,
+                "Salt": 0.0
+            },
+            "capacity": 1213.5
+        },
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "tubing_post_column": {
+        "length": 0.381,
+        "diameter": 0.00075,
+        "axial_dispersion": 0.000987,
+        "discretization": {
+            "ncol": 100
+        }
+    },
+    "tubing_detectors": {
+        "length": 1.349,
+        "diameter": 0.00075,
+        "axial_dispersion": 0.000118,
+        "discretization": {
+            "ncol": 100
+        }
+    }
+}

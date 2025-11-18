@@ -47,21 +47,26 @@ def load_synthetic_parameters() -> dict:
     return load_parameters_from_file(Path(__file__).parent / "parameters_synthetic.json")
 
 
+def load_parameters_lukas():
+    """Load parameters as estimated by Lukas Thiel."""
+    return load_parameters_from_file(Path(__file__).parent / "parameters_lukas.json")
+
+
 def load_parameters_from_previous_run(
     branch_name: str
 ) -> dict:
     """Load parameters from previous run."""
     cache_path = repo.copy_data_to_cache(branch_name)
     parameters_path = cache_path / "parameters.json"
-    parameters = load_parameters_from_file(parameters_path)
-
-    return parameters
+    return load_parameters_from_file(parameters_path)
 
 
 def load_parameters(prior_branch_name: Optional[str]) -> dict:
     """Load parameters."""
     if prior_branch_name is None:
         return load_synthetic_parameters()
+    elif prior_branch_name == "parameters_lukas":
+        return load_parameters_lukas()
 
     return load_parameters_from_previous_run(prior_branch_name)
 
