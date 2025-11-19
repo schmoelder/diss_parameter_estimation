@@ -68,6 +68,7 @@ def setup_references():
         # Rescale Lysozyme
         reference_lysozyme = correct_baseline_and_normalize(
             knauer_data.uv_1,
+            start_baseline=60,
             target_area=n_sample_lysozyme,
         )
         reference_lysozyme.component_system = ComponentSystem(components)

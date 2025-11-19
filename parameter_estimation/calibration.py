@@ -108,9 +108,19 @@ def correct_baseline(
     time = reference.time
     signal = reference.solution
 
+    if start is None:
+        start = time[0]
+    if end is None:
+        end = time[-1]
+
     # Corect for baseline drift
     baseline = fit_baseline(time, signal, start, end, threshold).reshape(-1, 1)
     calibrated_reference.solution = reference.solution - baseline
+
+    # Remove data outside of window
+    window_idx = np.where((time < start) | (time > end))
+    calibrated_reference.solution[window_idx] = 0
+
     calibrated_reference.update_solution()
 
     return calibrated_reference
