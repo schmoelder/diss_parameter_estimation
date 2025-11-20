@@ -25,7 +25,7 @@ def get_experimental_data_path() -> os.PathLike:
     The branch name is currently hard-coded and needs to be updated in case the data
     changes.
     """
-    branch_name = "2025-07-12_16-52-08_main_1c342b1"
+    branch_name = "2025-11-23_15-36-31_main_ab9cb48"
     cache_path = repo.copy_data_to_cache(branch_name)
 
     return cache_path / "experimental_data"

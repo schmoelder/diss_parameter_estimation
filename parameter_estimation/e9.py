@@ -18,6 +18,7 @@ Status: open
 from CADETProcess.processModel import (
     ComponentSystem, StericMassAction, GeneralRateModel, LumpedRateModelWithPores
 )
+from CADETProcess.reference import ReferenceIO
 
 from e0 import coeffcients
 from calibration import correct_baseline_and_normalize, apply_polynomial_calibration
@@ -51,13 +52,55 @@ components = ["Lysozyme"]
 
 gradient_lengths_cv = [4, 8, 12, 16]
 
+peaks = {
+    4.0: {
+        4: [50*60, 58*60],
+        8: [68*60, 78*60],
+        12: [85*60, 98*60],
+        16: [100*60, 116*60],
+    },
+    4.25: {
+        4: [48*60, 56*60],
+        8: [64*60, 74*60],
+        12: [80*60, 94*60],
+        16: [95*60, 108*60],
+    },
+    4.5: {
+        4: [46*60, 56*60],
+        8: [61*60, 72*60],
+        12: [75*60, 87*60],
+        16: [90*60, 103*60],
+    },
+    4.75: {
+        4: [45*60, 54*60],
+        8: [58*60, 69*60],
+        12: [71*60, 83*60],
+        16: [85*60, 98*60],
+    },
+    5.0: {
+        4: [44*60, 53*60],
+        8: [55*60, 68*60],
+        12: [70*60, 83*60],
+        16: [80*60, 97*60],
+    },
+}
 
-def setup_references():
+
+def get_peak_times(pH):
+    start_times = [peak[0] for peak in peaks[pH].values()]
+    end_times = [peak[1] for peak in peaks[pH].values()]
+
+    return start_times, end_times
+
+
+def setup_references(pH):
     """Set up reference data."""
-    references_lysozyme = []
-    references_salt = []
-    for gradient in gradient_lengths_cv:
-        file_path = experimental_data_path / "e9" / f"{gradient}_cv.csv"
+    references_lysozyme: list[ReferenceIO] = []
+    references_salt: list[ReferenceIO] = []
+    start_times, end_times = get_peak_times(pH)
+
+    for gradient, start, end in zip(gradient_lengths_cv, start_times, end_times):
+        file_path = experimental_data_path / "e9" / f"Lysozyme_pH_{pH}" / f"{gradient}_cv.csv"
 
         knauer_data = KnauerExperimentalData(
             file_path=file_path,
@@ -69,6 +112,8 @@ def setup_references():
         reference_lysozyme = correct_baseline_and_normalize(
             knauer_data.uv_1,
             start_baseline=60,
+            start_normalization=start,
+            end_normalization=end,
             target_area=n_sample_lysozyme,
         )
         reference_lysozyme.component_system = ComponentSystem(components)
@@ -130,9 +175,9 @@ def setup_lwe_processes(
 def run_optimization(
     lwe_processes,
     references_lysozyme,
+    start_times,
+    end_times,
     include_film_diffusion=False,
-    start_times=None,
-    end_times=None,
     prior_branch_name=None,
     debug=False,
 ):
@@ -173,19 +218,20 @@ def run_optimization(
 # %% Run optimization
 
 def main(
+    pH,
     prior_branch_name=None,
     include_film_diffusion=False,
     include_pore_diffusion=False,
     is_kinetic=True,
-    start_times=None,
-    end_times=None,
     debug=False,
 ):
     # Setup reference data
     if prior_branch_name is None:
         references_lysozyme = None
     else:
-        references_lysozyme, references_salt = setup_references()
+        references_lysozyme, references_salt = setup_references(pH)
+
+    start_times, end_times = get_peak_times(pH)
 
     # Setup process
     lwe_processes = setup_lwe_processes(include_pore_diffusion, is_kinetic)
@@ -194,30 +240,29 @@ def main(
     return run_optimization(
         lwe_processes,
         references_lysozyme,
-        include_film_diffusion,
         start_times,
         end_times,
+        include_film_diffusion,
         prior_branch_name,
         debug=debug,
     )
 
 
 if __name__ == "__main__":
+    pH = 4.0
+
     include_film_diffusion = False
     include_pore_diffusion = False
     is_kinetic = False
 
     debug = False
     prior_branch_name = None
-    start_times = None
-    end_times = None
 
     e9_optimization_results, posteriour_branch_name = main(
+        pH,
         prior_branch_name,
         include_film_diffusion,
         include_pore_diffusion,
         is_kinetic,
-        start_times,
-        end_times,
         debug,
     )
