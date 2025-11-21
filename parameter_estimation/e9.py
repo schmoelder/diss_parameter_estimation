@@ -41,7 +41,7 @@ from parameters import (
     metrics,
     optimizer_options,
 )
-from utils import experimental_data_path
+from utils import experimental_data_path, load_parameters, update_process_parameters
 
 
 # %% Setup methods
@@ -213,6 +213,59 @@ def run_optimization(
         commit_message=commit_message,
         debug=debug,
     )
+
+
+# %% Yamamoto
+
+from CADETProcess.tools.yamamoto import (
+    GradientExperiment, plot_experiments, fit_parameters, YamamotoResults
+)
+
+def setup_yamamoto_experiments(pH, column_volume):
+    references_lysozyme, references_salt = setup_references(pH=pH)
+
+    def create_experiment(ref_salt, ref_protein, gradient_length_cv):
+        time = ref_salt.time
+
+        c_salt = ref_salt.solution
+        c_protein = ref_protein.solution
+
+        experiment = GradientExperiment(
+            time,
+            c_salt,
+            c_protein,
+            column_volume*gradient_length_cv,
+            c_salt_start=20,
+            c_salt_end=1020,
+        )
+
+        return experiment
+
+    experiments = [
+        create_experiment(ref_salt, ref_protein, gradient_length_cv)
+        for ref_salt, ref_protein, gradient_length_cv
+        in zip(references_salt, references_lysozyme, gradient_lengths_cv)
+    ]
+
+    return experiments
+
+
+def yamamoto(
+    pH,
+    prior_branch_name=None,
+) -> YamamotoResults:
+    process = setup_lwe_processes()[0]
+    prior_parameters = load_parameters(prior_branch_name)
+    update_process_parameters(process, prior_parameters)
+    column = process.flow_sheet.column
+
+    experiments = setup_yamamoto_experiments(pH, column.volume)
+    plot_experiments(experiments)
+
+    yamamoto_results = fit_parameters(experiments, column)
+    yamamoto_results.plot()
+
+    return yamamoto_results
 
 
 # %% Run optimization
