@@ -140,12 +140,9 @@ def update_process_parameters(
         if unit.name not in resolved_parameters:
             continue
 
-        parameters = copy.deepcopy(unit.parameters)
-        parameters.pop("prior_branch_name", None)
-        parameters.pop("name", None)
-
+        unit_parameters = copy.deepcopy(unit.parameters)
         updated_parameters = update_dict_recursively(
-            parameters,
+            unit_parameters,
             resolved_parameters[unit.name],
             only_existing_keys=True
         )
@@ -163,11 +160,10 @@ def update_process_parameters(
             unit.length = column_length
             unit.diameter = column_diameter
 
-    if "column" in knauer_process.flow_sheet:
+    if "column" in knauer_process.flow_sheet and "total_capacity" in parameters:
         if isinstance(knauer_process.flow_sheet.column.binding_model, StericMassAction):
-            from e8 import update_capacity
-
-            update_capacity(knauer_process)
+            from e8 import set_total_capacity
+            set_total_capacity(knauer_process, parameters["total_capacity"])
 
 
 def restore_component_values(value: Any, component_system: ComponentSystem) -> Any:
@@ -220,7 +216,10 @@ def update_parameters(
         The updated parameters
     """
     component_system = knauer_process.component_system
-    new_parameters = {unit.name: unit.parameters for unit in knauer_process.flow_sheet}
+    new_parameters = {
+        unit.name: unit.parameters
+        for unit in knauer_process.flow_sheet
+    }
 
     restored_parameters = restore_component_values(
         new_parameters, component_system

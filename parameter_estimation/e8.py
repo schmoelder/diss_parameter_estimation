@@ -23,12 +23,30 @@ capacity constant.
 import numpy as np
 import pytest
 
+from CADETProcess.processModel import LumpedRateModelWithPores
 from CADETProcess.reference import ReferenceIO
 from CADETProcess.solution import slice_solution
 
-from knauer import KnauerExperimentalData
-from parameters import flow_rate
-from utils import experimental_data_path
+from knauer import KnauerExperimentalData, Step
+from parameters import (
+    component_system_naoh,
+    knauer_system_options,
+    c_dextran,
+    n_sample_dextran,
+    time_offset,
+    cycle_time_bed,
+    flow_rate,
+    metrics,
+    optimizer_options,
+)
+
+from utils import (
+    experimental_data_path,
+    tracks_results,
+    load_parameters,
+    save_parameters,
+    update_process_parameters,
+)
 
 
 # %% Setup methods
@@ -37,6 +55,9 @@ pH = 12.260
 c_NaOH = 10**-(14-pH)*1000  # mM
 
 start_NaOH = 188 * 60   # s
+
+knauer_system_options = knauer_system_options.copy()
+knauer_system_options['ColumnModel'] = LumpedRateModelWithPores
 
 
 def setup_references():
@@ -50,6 +71,19 @@ def setup_references():
         )
         references.append(knauer_data.conductivity)
     return references
+
+
+def setup_process():
+    """Set up process."""
+    return Step(
+        "e8",
+        component_system_naoh,
+        knauer_system_options,
+        c_buffer_a=[0],
+        c_buffer_b=[c_NaOH],
+        cycle_time=19000,
+        flow_rate=flow_rate,
+    )
 
 
 # %% Process data
@@ -77,18 +111,17 @@ def determine_breakthrough(reference: ReferenceIO, percentage: float = 10) -> fl
 
 def calculate_NaOH_volume(breakthrough_10: float) -> float:
     """
-    Calculate the volume of NaOH that flowed through the column up to 10 % breakthrough.
+    Calculate volume of NaOH used up to 10 % breakthrough.
 
     Parameters
     ----------
     breakthrough_10 : float
-        The time or point at which 10 percent breakthrough occurs.
+        The time or point at which 10 % breakthrough occurs.
 
     Returns
     -------
     float
-        The volume of NaOH that has flowed through the column until the 10 percent
-        breakthrough point.
+        Volume of NaOH used to get to the 10 % breakthrough point.
     """
     return (breakthrough_10 - start_NaOH) * flow_rate
 
@@ -112,33 +145,11 @@ def calculate_total_capacity(V_NaOH: float, c_NaOH: float) -> float:
     return V_NaOH * c_NaOH
 
 
-def calculate_total_porosity(
-        bed_porosity: float,
-        particle_porosity: float,
-        ) -> float:
-    """
-    Calculate the total porosity of a packed bed column.
-
-    Parameters
-    ----------
-    bed_porosity : float
-        The bed porosity.
-    particle_porosity : float
-        The particle porosity.
-
-    Returns
-    -------
-    float
-        The total porosity of the column, accounting for both bed and particle porosity.
-    """
-    return bed_porosity + (1 - bed_porosity) * particle_porosity
-
-
 def calculate_total_column_capacity(
-        column_volume: float,
-        total_porosity: float,
-        specific_capacity: float,
-        ) -> float:
+    column_volume: float,
+    total_porosity: float,
+    specific_capacity: float,
+) -> float:
     """
     Calculate the total capacity of a column resin.
 
@@ -160,10 +171,10 @@ def calculate_total_column_capacity(
 
 
 def calculate_specific_capacity(
-        column_volume: float,
-        total_porosity: float,
-        total_capacity: float,
-        ) -> float:
+    column_volume: float,
+    total_porosity: float,
+    total_capacity: float,
+) -> float:
     """
     Calculate the specific capacity of the column material.
 
@@ -184,7 +195,7 @@ def calculate_specific_capacity(
     return total_capacity / ((1 - total_porosity) * column_volume)
 
 
-def calculate_V_NaOH():
+def calculate_V_NaOH_used():
     V_NaOHs = []
     breakthrough_10s = []
 
@@ -203,14 +214,6 @@ def calculate_V_NaOH():
     return V_NaOH_mean
 
 
-def determine_total_capacity(V_NaOH_mean, knauer_process):
-    system_dead_volume = knauer_process.flow_sheet.system_dead_volume
-    V_NaOH = V_NaOH_mean - system_dead_volume
-    total_capacity = V_NaOH * c_NaOH
-
-    return total_capacity
-
-
 def set_total_capacity(knauer_process, total_capacity):
     column = knauer_process.flow_sheet.column
 
@@ -222,34 +225,55 @@ def set_total_capacity(knauer_process, total_capacity):
     column.q = [specific_capacity] + (column.n_comp - 1) * [0]
 
 
-def update_capacity(knauer_process):
-    total_capacity = determine_total_capacity(knauer_process)
-    set_total_capacity(knauer_process, total_capacity)
+@tracks_results
+def determine_total_capacity(
+    prior_branch_name=None,
+):
+    parameters = load_parameters(prior_branch_name)
+    process = setup_process()
+    update_process_parameters(process, parameters)
+
+    V_NaOH_used = calculate_V_NaOH_used()
+    V_NaOH = V_NaOH_used - process.flow_sheet.system_dead_volume
+    total_capacity = calculate_total_capacity(V_NaOH, c_NaOH)
+
+    parameters["total_capacity"] = total_capacity
+    parameters["prior_branch_name"] = prior_branch_name
+    parameters["case"] = "e8"
+
+    save_parameters(parameters)
+
+    return total_capacity
 
 
-def __main__(
+# %% Main
+
+def main(
     prior_branch_name=None,
     debug=False,
 ):
+    commit_message = "E8"
+    if prior_branch_name is None:
+        commit_message += "_synthetic"
+
+    return determine_total_capacity(
+        prior_branch_name=prior_branch_name,
+        debug=debug,
+        commit_message=commit_message,
+    )
 
 
+if __name__ == "__main__":
+    debug = True
+    prior_branch_name = None
 
+    total_capacity, new_branch = main(
+        prior_branch_name=prior_branch_name,
+        debug=debug,
+    )
 
 
 # %% Pytest
-
-@pytest.mark.parametrize(
-    "bed_porosity, particle_porosity, expected",
-    [
-        (0.5, 0.5, 0.75),
-        (0.5, 0.0, 0.5),    # Solid particles
-        (0.0, 0.5, 0.5),    # Only particles
-        (1.0, 0.5, 1.0),
-    ],
-)
-def test_total_porosity(bed_porosity, particle_porosity, expected):
-    assert calculate_total_porosity(bed_porosity, particle_porosity) == expected
-
 
 @pytest.mark.parametrize(
     "column_volume, total_porosity, capacity, expected",
@@ -289,7 +313,6 @@ def test_specific_capacity(column_volume, total_porosity, total_capacity, expect
 
 
 if __name__ == "__main__":
-    run_tests = True
-
+    run_tests = False
     if run_tests:
         pytest.main([__file__])
