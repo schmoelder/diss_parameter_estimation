@@ -147,6 +147,8 @@ class KnauerSystem(FlowSheet):
     def get_system_dead_volume(self, exclude=None, ignore_missing=False):
         if exclude is None:
             exclude = []
+        if not isinstance(exclude, list):
+            exclude = [exclude]
 
         def _get_unit_volume(name, ignore_missing=True):
             try:
@@ -155,11 +157,12 @@ class KnauerSystem(FlowSheet):
                 if not ignore_missing:
                     raise KeyError(f"Cannot find unit: {name}.")
 
-            return unit.volume
+            return unit.volume_liquid
 
         system_units = [
                 "mixer",
                 "tubing_pre_injection",
+                "column",
                 "tubing_post_column",
                 "tubing_detectors",
             ]
