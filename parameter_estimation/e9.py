@@ -273,6 +273,7 @@ def yamamoto(
 def main(
     pH,
     time_offset=0.0,
+    use_peak_times=False,
     prior_branch_name=None,
     include_film_diffusion=False,
     include_pore_diffusion=False,
@@ -285,7 +286,10 @@ def main(
     else:
         references_lysozyme, references_salt = setup_references(pH, time_offset)
 
-    start_times, end_times = get_peak_times(pH, time_offset)
+    start_times = None
+    end_times = None
+    if use_peak_times:
+        start_times, end_times = get_peak_times(pH, time_offset)
 
     # Setup process
     lwe_processes = setup_lwe_processes(include_pore_diffusion, is_kinetic)
@@ -306,6 +310,7 @@ if __name__ == "__main__":
     pH = 4.0
 
     time_offset = 0.0
+    use_peak_times = False
     include_film_diffusion = False
     include_pore_diffusion = False
     is_kinetic = False
@@ -316,6 +321,7 @@ if __name__ == "__main__":
     e9_optimization_results, posteriour_branch_name = main(
         pH,
         time_offset,
+        use_peak_times,
         prior_branch_name,
         include_film_diffusion,
         include_pore_diffusion,
