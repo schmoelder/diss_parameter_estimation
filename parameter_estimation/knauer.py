@@ -2,6 +2,7 @@ import csv
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 
 from CADETProcess.dataStructure import get_nested_value
 from CADETProcess.processModel import ComponentSystem
@@ -400,13 +401,9 @@ class LWE(KnauerSystemProcess):
 # %% Experimental Data
 
 
-def load_knauer_data(file_path):
+def load_knauer_data_pd(file_path):
     """
-    Load experimental data from a Knauer System.
-
-    The first 6 lines are metadata (key/value pairs). The header row is on line 7,
-    and the data rows start from line 8. The returned data is indexed by column,
-    mapping each column header to a list of values.
+    Load Knauer data using pandas.
 
     Parameters
     ----------
@@ -416,26 +413,23 @@ def load_knauer_data(file_path):
     Returns
     -------
     metadata : dict
-        Dictionary containing metadata extracted from the first 6 lines.
-    data : dict
-        Dictionary mapping each column header to a list of values from that column.
+        Metadata from the first 6 lines.
+    data : pandas.DataFrame
+        Tabular data with original column names.
 
     Examples
     --------
-    >>> meta, data = load_knauer_data("Aceton_no_column_short_tube_0002.rfp")
-    >>> print(meta["FileName"])
-    Aceton_no_column_short_tube_0002.rfp
-    >>> print(data["UV Channel 1 [mAU]"])
-    ['-4.067', '-4.067', '-3.361', '-2.402', ...]
+    >>> meta, df = load_knauer_data_pd("Aceton_no_column_short_tube_0002.rfp")
+    >>> df.columns[0]
+    'UV Channel 1 [mAU]'
     """
     metadata = {}
-    data = {}
     delimiter = ";"
 
-    with open(file_path, newline="", encoding='latin-1') as csvfile:
-        # Process the first 6 lines for metadata.
+    # Read first 6 lines manually
+    with open(file_path, encoding="latin-1") as f:
         for _ in range(6):
-            line = next(csvfile).strip()
+            line = f.readline().strip()
             if not line:
                 continue
             parts = line.split(delimiter)
@@ -444,26 +438,17 @@ def load_knauer_data(file_path):
             if key:
                 metadata[key] = value
 
-        # Read the header row (line 7) and parse column names.
-        header_line = next(csvfile).strip()
-        header = [col.strip() for col in header_line.split(delimiter)]
+    # Load remaining data with pandas
+    df = pd.read_csv(
+        file_path,
+        sep=delimiter,
+        skiprows=6,
+        encoding="latin-1"
+    )
 
-        # Initialize the data dictionary with an empty list for each column.
-        for col in header:
-            data[col] = []
+    df = df.dropna()
 
-        # Process each subsequent data row.
-        reader = csv.reader(csvfile, delimiter=delimiter)
-        for row in reader:
-            # Skip empty rows.
-            if not row or all(not cell.strip() for cell in row):
-                continue
-            for col, cell in zip(header, row):
-                stripped = cell.strip()
-                if stripped:  # Only append if the cell is not empty.
-                    data[col].append(stripped)
-
-    return metadata, data
+    return metadata, df
 
 
 class KnauerExperimentalData:
@@ -536,7 +521,7 @@ class KnauerExperimentalData:
             points are to be used. Note, this refers to the duration after applying the
             time_offset.
         """
-        self.metadata, self.data = load_knauer_data(file_path)
+        self.metadata, self.data = load_knauer_data_pd(file_path)
         self.file_name = self.metadata.get("FileName")
         self.sample = self.metadata.get("Sample")
         self.date = self.metadata.get("Date")
@@ -613,25 +598,36 @@ class KnauerExperimentalData:
         Optional[ReferenceIO]
             The created ReferenceIO object or None if data is not available.
         """
-        data_array = np.array(
-            self.data.get(column_name, []), dtype=float
-        ).reshape(-1, 1)
+        # Column must exist
+        if column_name not in self.data.columns:
+            return None
+
+        # Extract and convert the measurement column
+        data_series = pd.to_numeric(self.data[column_name], errors="coerce")
+        data_array = data_series.to_numpy().reshape(-1, 1)
+
+        # Extract and convert time
+        time_min = pd.to_numeric(self.data["Time [Min]"], errors="coerce").to_numpy()
+        time = time_min * 60 - self.time_offset
+
+        # Synchronize length
+        n = min(len(time), len(data_array))
+        time = time[:n]
+        data_array = data_array[:n]
+
+        # Filter valid time window
+        valid = (time >= 0) & (time <= self.duration)
+        time = time[valid]
+        data_array = data_array[valid]
+
+        # Remove rows with NaNs in data
+        valid_data = ~np.isnan(data_array[:, 0])
+        time = time[valid_data]
+        data_array = data_array[valid_data]
 
         if len(data_array) == 0:
             return None
 
-        # Clean up time vector and remove negative values
-        time_min = np.array(self.data.get("Time [Min]", []), dtype=float)
-        time = time_min * 60 - self.time_offset
-        time = time[:len(data_array)]
-
-        # Remove negative time values and synchronize concentration array
-        valid_indices = np.where((time >= 0) & (time <= self.duration))
-        time = time[valid_indices]
-        data_array = data_array[valid_indices]
-
         name = alias if alias else column_name
 
-        reference_io = ReferenceIO(name, time, data_array, self.flow_rate)
-
-        return reference_io
+        return ReferenceIO(name, time, data_array, self.flow_rate)
