@@ -86,18 +86,18 @@ peaks = {
 }
 
 
-def get_peak_times(pH):
-    start_times = [peak[0] for peak in peaks[pH].values()]
-    end_times = [peak[1] for peak in peaks[pH].values()]
+def get_peak_times(pH, time_offset=0.0):
+    start_times = [peak[0]-time_offset for peak in peaks[pH].values()]
+    end_times = [peak[1]-time_offset for peak in peaks[pH].values()]
 
     return start_times, end_times
 
 
-def setup_references(pH):
+def setup_references(pH, time_offset=0.0):
     """Set up reference data."""
     references_lysozyme: list[ReferenceIO] = []
     references_salt: list[ReferenceIO] = []
-    start_times, end_times = get_peak_times(pH)
+    start_times, end_times = get_peak_times(pH, time_offset)
 
     for gradient, start, end in zip(gradient_lengths_cv, start_times, end_times):
         file_path = experimental_data_path / "e9" / f"Lysozyme_pH_{pH}" / f"{gradient}_cv.csv"
@@ -105,13 +105,13 @@ def setup_references(pH):
         knauer_data = KnauerExperimentalData(
             file_path=file_path,
             flow_rate=flow_rate,
-            time_offset=0,
+            time_offset=time_offset,
         )
 
         # Rescale Lysozyme
         reference_lysozyme = correct_baseline_and_normalize(
             knauer_data.uv_1,
-            start_baseline=60,
+            start_baseline=max(60, time_offset),  # Account for startup signal noise
             start_normalization=start,
             end_normalization=end,
             target_area=n_sample_lysozyme,
@@ -272,6 +272,7 @@ def yamamoto(
 
 def main(
     pH,
+    time_offset=0.0,
     prior_branch_name=None,
     include_film_diffusion=False,
     include_pore_diffusion=False,
@@ -282,9 +283,9 @@ def main(
     if prior_branch_name is None:
         references_lysozyme = None
     else:
-        references_lysozyme, references_salt = setup_references(pH)
+        references_lysozyme, references_salt = setup_references(pH, time_offset)
 
-    start_times, end_times = get_peak_times(pH)
+    start_times, end_times = get_peak_times(pH, time_offset)
 
     # Setup process
     lwe_processes = setup_lwe_processes(include_pore_diffusion, is_kinetic)
@@ -304,6 +305,7 @@ def main(
 if __name__ == "__main__":
     pH = 4.0
 
+    time_offset = 0.0
     include_film_diffusion = False
     include_pore_diffusion = False
     is_kinetic = False
@@ -313,6 +315,7 @@ if __name__ == "__main__":
 
     e9_optimization_results, posteriour_branch_name = main(
         pH,
+        time_offset,
         prior_branch_name,
         include_film_diffusion,
         include_pore_diffusion,
