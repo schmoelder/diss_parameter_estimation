@@ -16,6 +16,8 @@ Status: done
 # %% Imports
 
 from CADETProcess.processModel import ComponentSystem, GeneralRateModel, LumpedRateModelWithPores
+from cadetrdm import Options, ProjectRepo, tracks_results
+
 from knauer import PulseInjection, KnauerExperimentalData
 from calibration import correct_baseline_and_normalize
 from characterization import CharacterizeParticles, optimize
@@ -40,6 +42,16 @@ solution_path = "tubing_post_column.outlet"
 components = ["Lysozyme"]
 
 knauer_system_options = knauer_system_options.copy()
+
+DEFAULT_OPTIONS = Options({
+    "include_axial_dispersion": True,
+    "include_film_diffusion": False,
+    "include_pore_diffusion": False,
+    "prior_branch_name": None,
+    "commit_message": "E7",
+    "debug": False,
+    "push": True,
+})
 
 
 def setup_reference() -> None:
@@ -84,6 +96,7 @@ def setup_process(
 
 
 def run_optimization(
+    results_directory,
     process,
     reference,
     include_axial_dispersion=False,
@@ -102,13 +115,8 @@ def run_optimization(
         "component_index": 1,
         "name": process.name,
     }
-    commit_message = "E7"
-    if prior_branch_name is None:
-        commit_message += "_synthetic"
-    elif prior_branch_name == "parameters_lukas":
-        commit_message += "_lukas"
-
     return optimize(
+        results_directory,
         process,
         CharacterizationType=CharacterizeParticles,
         solution_path=solution_path,
@@ -118,51 +126,35 @@ def run_optimization(
         characterization_options=characterization_options,
         optimizer_options=optimizer_options,
         prior_branch_name=prior_branch_name,
-        commit_message=commit_message,
-        debug=debug,
     )
 
 
 # %% Run optimization
-
-def main(
-    prior_branch_name=None,
-    include_axial_dispersion=False,
-    include_film_diffusion=False,
-    include_pore_diffusion=False,
-    debug=False,
-):
-    # Setup reference data
-    reference = None if prior_branch_name is None else setup_reference()
-
+@tracks_results
+def main(repo:ProjectRepo, options: Options):
     # Setup process
-    process = setup_process(
-        include_pore_diffusion,
-    )
+    process = setup_process(options.include_pore_diffusion)
+
+    # Setup reference data
+    reference = None if options.use_synthetic_data else setup_reference()
 
     # Run optimization
     return run_optimization(
+        repo.output_path,
         process,
         reference,
-        include_axial_dispersion,
-        include_film_diffusion,
-        prior_branch_name,
-        debug,
+        include_film_diffusion=options.include_film_diffusion,
+        include_axial_dispersion=options.include_axial_dispersion,
+        prior_branch_name=options.prior_branch_name
     )
 
 
 if __name__ == "__main__":
-    include_axial_dispersion = True
-    include_film_diffusion = False
-    include_pore_diffusion = False
+    options = DEFAULT_OPTIONS.copy()
+    options.include_axial_dispersion = True
+    options.include_film_diffusion = False
+    options.include_pore_diffusion = False
+    options.debug = True
+    options.prior_branch_name = None
 
-    debug = False
-    prior_branch_name = None
-
-    e7_optimization_results, posteriour_branch_name = main(
-        prior_branch_name,
-        include_axial_dispersion,
-        include_film_diffusion,
-        include_pore_diffusion,
-        debug,
-    )
+    e7_optimization_results, posteriour_branch_name = main(options)

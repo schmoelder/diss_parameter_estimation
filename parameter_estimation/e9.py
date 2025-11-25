@@ -19,6 +19,7 @@ from CADETProcess.processModel import (
     ComponentSystem, StericMassAction, GeneralRateModel, LumpedRateModelWithPores
 )
 from CADETProcess.reference import ReferenceIO
+from cadetrdm import Options, ProjectRepo, tracks_results
 
 from e0 import coeffcients
 from calibration import correct_baseline_and_normalize, apply_polynomial_calibration
@@ -49,6 +50,19 @@ from utils import experimental_data_path, load_parameters, update_process_parame
 solution_path_lysozyme = "tubing_post_column.outlet"
 solution_path_salt = "tubing_detectors.outlet"
 components = ["Lysozyme"]
+
+DEFAULT_OPTIONS = Options({
+    "pH": 4.0,
+    "time_offset": 0.0,
+    "use_peak_times": False,
+    "include_film_diffusion": False,
+    "include_pore_diffusion": False,
+    "is_kinetic": False,
+    "prior_branch_name": None,
+    "commit_message": "E9",
+    "debug": False,
+    "push": True,
+})
 
 gradient_lengths_cv = [4, 8, 12, 16]
 
@@ -173,13 +187,13 @@ def setup_lwe_processes(
 
 
 def run_optimization(
+    results_directory,
     lwe_processes,
     references_lysozyme,
     start_times,
     end_times,
     include_film_diffusion=False,
     prior_branch_name=None,
-    debug=False,
 ):
     """Run optimization."""
     include_pore_diffusion = "grm" in lwe_processes[0].name
@@ -190,15 +204,11 @@ def run_optimization(
         "include_pore_diffusion": include_pore_diffusion,
         "is_kinetic": is_kinetic,
         "component_index": 1,
-        "name": lwe_processes[0].name,
+        "name": lwe_processes[0].name[0:-5],
     }
-    commit_message = "E9"
-    if prior_branch_name is None:
-        commit_message += "_synthetic"
-    elif prior_branch_name == "parameters_lukas":
-        commit_message += "_lukas"
 
     return optimize(
+        results_directory,
         lwe_processes,
         CharacterizationType=CharacterizeAdsorptionParameters,
         solution_path=solution_path_lysozyme,
@@ -210,8 +220,6 @@ def run_optimization(
         characterization_options=characterization_options,
         optimizer_options=optimizer_options,
         prior_branch_name=prior_branch_name,
-        commit_message=commit_message,
-        debug=debug,
     )
 
 
@@ -269,62 +277,50 @@ def yamamoto(
 
 
 # %% Run optimization
+@tracks_results
+def main(repo:ProjectRepo, options: Options):
+    # Setup process
+    lwe_processes = setup_lwe_processes(
+        options.include_pore_diffusion,
+        options.is_kinetic,
+    )
 
-def main(
-    pH,
-    time_offset=0.0,
-    use_peak_times=False,
-    prior_branch_name=None,
-    include_film_diffusion=False,
-    include_pore_diffusion=False,
-    is_kinetic=True,
-    debug=False,
-):
     # Setup reference data
-    if prior_branch_name is None:
-        references_lysozyme = None
-    else:
-        references_lysozyme, references_salt = setup_references(pH, time_offset)
+    references_lysozyme = None
+    if options.prior_branch_name:
+        references_lysozyme, references_salt = setup_references(
+            options.pH,
+            options.time_offset,
+        )
 
     start_times = None
     end_times = None
-    if use_peak_times:
-        start_times, end_times = get_peak_times(pH, time_offset)
-
-    # Setup process
-    lwe_processes = setup_lwe_processes(include_pore_diffusion, is_kinetic)
+    if options.use_peak_times:
+        start_times, end_times = get_peak_times(
+            options.pH,
+            options.time_offset,
+        )
 
     # Run optimization
     return run_optimization(
+        repo.output_path,
         lwe_processes,
         references_lysozyme,
         start_times,
         end_times,
-        include_film_diffusion,
-        prior_branch_name,
-        debug=debug,
+        include_film_diffusion=options.include_film_diffusion,
+        prior_branch_name=options.prior_branch_name
     )
 
 
 if __name__ == "__main__":
-    pH = 4.0
+    options = DEFAULT_OPTIONS.copy()
+    options.pH = 4.0
+    options.time_offset = 0.0
+    options.use_peak_times = False
+    options.include_film_diffusion = False
+    options.include_pore_diffusion = False
+    options.debug = True
+    options.prior_branch_name = None
 
-    time_offset = 0.0
-    use_peak_times = False
-    include_film_diffusion = False
-    include_pore_diffusion = False
-    is_kinetic = False
-
-    debug = False
-    prior_branch_name = None
-
-    e9_optimization_results, posteriour_branch_name = main(
-        pH,
-        time_offset,
-        use_peak_times,
-        prior_branch_name,
-        include_film_diffusion,
-        include_pore_diffusion,
-        is_kinetic,
-        debug,
-    )
+    e9_optimization_results, posteriour_branch_name = main(options)

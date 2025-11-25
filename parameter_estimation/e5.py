@@ -16,6 +16,7 @@ Status: done
 # %% Imports
 
 from CADETProcess.processModel import GeneralRateModel, LumpedRateModelWithPores
+from cadetrdm import Options, ProjectRepo, tracks_results
 
 from knauer import PulseInjection, KnauerExperimentalData
 from calibration import correct_baseline_and_normalize
@@ -49,6 +50,13 @@ knauer_system_options['BindingModel'] = None
 start_peak = 3*60
 peak_max = 4*60
 
+DEFAULT_OPTIONS = Options({
+    "prior_branch_name": None,
+    "commit_message": "E5",
+    "debug": False,
+    "push": True,
+})
+
 
 def setup_reference():
     """Set up reference data."""
@@ -80,19 +88,14 @@ def setup_process():
 
 
 def run_optimization(
+    results_directory,
     process,
     reference,
     prior_branch_name=None,
-    debug=False,
 ):
     """Run optimization."""
-    commit_message = "E5"
-    if prior_branch_name is None:
-        commit_message += "_synthetic"
-    elif prior_branch_name == "parameters_lukas":
-        commit_message += "_lukas"
-
     return optimize(
+        results_directory,
         process,
         CharacterizationType=CharacterizeBed,
         solution_path=solution_path,
@@ -103,26 +106,31 @@ def run_optimization(
         end_times=peak_max,
         optimizer_options=optimizer_options,
         prior_branch_name=prior_branch_name,
-        commit_message=commit_message,
-        debug=debug,
     )
 
 
 # %% Run optimization
 
-def main(prior_branch_name=None, debug=False):
-    # Setup reference data
-    reference = None if prior_branch_name is None else setup_reference()
-
+@tracks_results
+def main(repo:ProjectRepo, options: Options):
     # Setup process
     process = setup_process()
 
+    # Setup reference data
+    reference = None if options.use_synthetic_data else setup_reference()
+
     # Run optimization
-    return run_optimization(process, reference, prior_branch_name, debug)
+    return run_optimization(
+        repo.output_path,
+        process,
+        reference,
+        prior_branch_name=options.prior_branch_name
+    )
 
 
 if __name__ == "__main__":
-    debug = False
-    prior_branch_name = None
+    options = DEFAULT_OPTIONS.copy()
+    options.debug = True
+    options.prior_branch_name = None
 
-    e5_optimization_results, posteriour_branch_name = main(prior_branch_name, debug)
+    e5_optimization_results, posteriour_branch_name = main(options)

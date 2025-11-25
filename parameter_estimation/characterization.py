@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import os
 from typing import Any, Literal, Optional, Type
 
 import numpy as np
@@ -21,8 +22,6 @@ from utils import (
     save_parameters,
     tracks_results,
 )
-
-repo = ProjectRepo(__file__)
 
 
 @dataclass
@@ -394,9 +393,6 @@ class CharacterizeAdsorptionParameters(CharacterizeBase):
 
         self.add_multi_criteria_decision_function(sort_and_filter)
 
-    def estimate_bounds_k_eq(self, c_s, nu, lambda_, grad):
-        return (c_s**(nu+1) * lambda_**(-nu))/(grad * (nu + 1))
-
 
 # %% Configure processes/references/comparators
 
@@ -602,6 +598,7 @@ def setup_optimizer(
 
 
 def setup_characterization(
+    results_directory: os.PathLike,
     knauer_processes: KnauerSystemProcess | list[KnauerSystemProcess],
     CharacterizationType: Type[CharacterizeBase],
     reference_configs: list,
@@ -631,7 +628,7 @@ def setup_characterization(
 
     characterization_options = characterization_options or {}
     name = characterization_options.pop("name", knauer_processes[0].name)
-    settings.working_directory = repo.output_repo.path / name
+    settings.working_directory = results_directory / name
     characterization = CharacterizationType(
         name=name,
         processes=knauer_processes,
@@ -642,6 +639,7 @@ def setup_characterization(
 
 
 def setup_optimization_problem(
+    results_directory: os.PathLike,
     knauer_processes: KnauerSystemProcess | list[KnauerSystemProcess],
     CharacterizationType: Type[CharacterizeBase],
     solution_path: str,
@@ -659,6 +657,8 @@ def setup_optimization_problem(
 
     Parameters
     ----------
+    results_directory: os.PathLike
+        Path to results directory.
     knauer_processes : KnauerSystemProcess | list[KnauerSystemProcess]
         A list of Knauer system processes to be characterized.
     CharacterizationType : Type[CharacterizeBase]
@@ -712,13 +712,17 @@ def setup_optimization_problem(
         end_times,
     )
     characterization = setup_characterization(
-        knauer_processes, CharacterizationType, reference_configs, characterization_options
+        results_directory,
+        knauer_processes,
+        CharacterizationType,
+        reference_configs,
+        characterization_options,
     )
     return characterization, knauer_processes, prior_parameters
 
 
-@tracks_results
 def optimize(
+    results_directory: os.PathLike,
     knauer_processes: KnauerSystemProcess | list[KnauerSystemProcess],
     CharacterizationType: Type[CharacterizeBase],
     solution_path: str,
@@ -737,6 +741,8 @@ def optimize(
 
     Parameters
     ----------
+    results_directory: os.PathLike,
+        Path to results directory.
     knauer_processes : KnauerSystemProcess | list[KnauerSystemProcess]
         A list of Knauer system processes to be characterized.
     CharacterizationType : Type[CharacterizeBase]
@@ -769,6 +775,7 @@ def optimize(
         The optimization results containing the estimated parameters.
     """
     characterization, knauer_processes, prior_parameters = setup_optimization_problem(
+        results_directory,
         knauer_processes,
         CharacterizationType,
         solution_path,

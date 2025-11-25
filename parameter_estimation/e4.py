@@ -17,8 +17,9 @@ Status: done
 
 # %% Imports
 
-import numpy as np
 from CADETProcess.reference import ReferenceIO
+from cadetrdm import Options, ProjectRepo, tracks_results
+import numpy as np
 
 from knauer import Step
 from characterization import (
@@ -42,6 +43,13 @@ from utils import experimental_data_path
 
 solution_path = "outlet.outlet"
 components = None
+
+DEFAULT_OPTIONS = Options({
+    "prior_branch_name": None,
+    "commit_message": "E4",
+    "debug": False,
+    "push": True,
+})
 
 
 def setup_reference():
@@ -79,19 +87,14 @@ def setup_process():
 
 
 def run_optimization(
+    results_directory,
     process,
     reference,
     prior_branch_name=None,
-    debug=False
 ):
     """Run optimization."""
-    commit_message = "E4"
-    if prior_branch_name is None:
-        commit_message += "_synthetic"
-    elif prior_branch_name == "parameters_lukas":
-        commit_message += "_lukas"
-
     return optimize(
+        results_directory,
         process,
         CharacterizationType=CharacterizePreInjection,
         solution_path=solution_path,
@@ -100,26 +103,31 @@ def run_optimization(
         metrics=metrics,
         optimizer_options=optimizer_options,
         prior_branch_name=prior_branch_name,
-        commit_message=commit_message,
-        debug=debug,
     )
 
 
 # %% Run optimization
 
-def main(prior_branch_name=None, debug=False):
+@tracks_results
+def main(repo:ProjectRepo, options: Options):
     # Setup process
     process = setup_process()
 
     # Setup reference data
-    reference = None if prior_branch_name is None else setup_reference()
+    reference = None if options.use_synthetic_data else setup_reference()
 
     # Run optimization
-    return run_optimization(process, reference, prior_branch_name, debug)
+    return run_optimization(
+        repo.output_path,
+        process,
+        reference,
+        prior_branch_name=options.prior_branch_name
+    )
 
 
 if __name__ == "__main__":
-    debug = False
-    prior_branch_name = None
+    options = DEFAULT_OPTIONS.copy()
+    options.debug = True
+    options.prior_branch_name = None
 
-    e4_optimization_results, posteriour_branch_name = main(prior_branch_name, debug)
+    e4_optimization_results, posteriour_branch_name = main(options)

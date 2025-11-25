@@ -16,6 +16,7 @@ Status: done
 # %% Imports
 
 from CADETProcess.processModel import LumpedRateModelWithPores
+from cadetrdm import Options, ProjectRepo, tracks_results
 
 from knauer import PulseInjection, KnauerExperimentalData
 from calibration import correct_baseline_and_normalize
@@ -48,6 +49,14 @@ knauer_system_options['BindingModel'] = None
 
 start_peak = 7*60
 end_peak = 12*60
+
+DEFAULT_OPTIONS = Options({
+    "include_axial_dispersion": True,
+    "prior_branch_name": None,
+    "commit_message": "E6",
+    "debug": False,
+    "push": True,
+})
 
 
 def setup_reference():
@@ -83,11 +92,11 @@ def setup_process():
 
 
 def run_optimization(
+    results_directory,
     process,
     reference,
     include_axial_dispersion=True,
     prior_branch_name=None,
-    debug=False,
 ):
     """Run optimization."""
     characterization_options = {
@@ -98,13 +107,8 @@ def run_optimization(
         "component_index": 0,
     }
 
-    commit_message = "E6"
-    if prior_branch_name is None:
-        commit_message += "_synthetic"
-    elif prior_branch_name == "parameters_lukas":
-        commit_message += "_lukas"
-
     return optimize(
+        results_directory,
         process,
         CharacterizationType=CharacterizeParticles,
         solution_path=solution_path,
@@ -116,33 +120,32 @@ def run_optimization(
         characterization_options=characterization_options,
         optimizer_options=optimizer_options,
         prior_branch_name=prior_branch_name,
-        commit_message=commit_message,
-        debug=debug,
     )
 
 # %% Run optimization
 
-def main(prior_branch_name=None, include_axial_dispersion=True, debug=False):
+@tracks_results
+def main(repo:ProjectRepo, options: Options):
     # Setup process
     process = setup_process()
 
     # Setup reference data
-    reference = None if prior_branch_name is None else setup_reference()
+    reference = None if options.use_synthetic_data else setup_reference()
 
     # Run optimization
     return run_optimization(
+        repo.output_path,
         process,
         reference,
-        include_axial_dispersion,
-        prior_branch_name, debug
+        include_axial_dispersion=options.include_axial_dispersion,
+        prior_branch_name=options.prior_branch_name
     )
 
 
 if __name__ == "__main__":
-    include_axial_dispersion = True
-    debug = False
-    prior_branch_name = None
+    options = DEFAULT_OPTIONS.copy()
+    options.include_axial_dispersion = True
+    options.debug = True
+    options.prior_branch_name = None
 
-    e6_optimization_results, posteriour_branch_name = main(
-        prior_branch_name, include_axial_dispersion, debug
-    )
+    e6_optimization_results, posteriour_branch_name = main(options)

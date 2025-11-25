@@ -14,6 +14,7 @@ Status: done
 """
 
 # %% Imports
+from cadetrdm import Options, ProjectRepo, tracks_results
 
 from knauer import PulseInjection, KnauerExperimentalData
 from calibration import correct_baseline_and_normalize
@@ -40,6 +41,13 @@ from utils import experimental_data_path
 tubing = "tubing_pre_column"
 solution_path = f"{tubing}.outlet"
 components = None
+
+DEFAULT_OPTIONS = Options({
+    "use_synthetic_data": False,
+    "commit_message": "E1",
+    "debug": False,
+    "push": True,
+})
 
 
 def setup_reference():
@@ -72,14 +80,13 @@ def setup_process():
 
 
 def run_optimization(
+    results_directory,
     process,
     reference,
-    debug=False,
 ):
     """Run optimization."""
-    commit_message = "E1"
-
     return optimize(
+        results_directory,
         process,
         CharacterizationType=CharacterizeTubing,
         solution_path=solution_path,
@@ -89,26 +96,26 @@ def run_optimization(
         characterization_options={"tubing": tubing},
         optimizer_options=optimizer_options,
         prior_branch_name=None,
-        commit_message=commit_message,
-        debug=debug,
     )
 
 
 # %% Run optimization
 
-def main(prior_branch_name=None, debug=False, use_synthetic_data=False):
-    # Setup reference data
-    reference = None if use_synthetic_data else setup_reference()
-
+@tracks_results
+def main(repo:ProjectRepo, options: Options):
     # Setup process
     process = setup_process()
 
+    # Setup reference data
+    reference = None if options.use_synthetic_data else setup_reference()
+
     # Run optimization
-    return run_optimization(process, reference, debug)
+    return run_optimization(repo.output_path, process, reference)
 
 
 if __name__ == "__main__":
-    debug = False
-    use_synthetic_data = False
+    options = DEFAULT_OPTIONS.copy()
+    options.use_synthetic_data = False
+    options.debug = True
 
-    e1_optimization_results, posteriour_branch_name = main(use_synthetic_data, debug)
+    e1_optimization_results, posteriour_branch_name = main(options)

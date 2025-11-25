@@ -20,12 +20,12 @@ capacity constant.
 
 # %% Imports
 
-import numpy as np
-import pytest
-
 from CADETProcess.processModel import LumpedRateModelWithPores
 from CADETProcess.reference import ReferenceIO
 from CADETProcess.solution import slice_solution
+from cadetrdm import Options, ProjectRepo, tracks_results
+import numpy as np
+import pytest
 
 from knauer import KnauerExperimentalData, Step
 from parameters import (
@@ -39,10 +39,8 @@ from parameters import (
     metrics,
     optimizer_options,
 )
-
 from utils import (
     experimental_data_path,
-    tracks_results,
     load_parameters,
     save_parameters,
     update_process_parameters,
@@ -58,6 +56,12 @@ start_NaOH = 188 * 60   # s
 
 knauer_system_options = knauer_system_options.copy()
 knauer_system_options['ColumnModel'] = LumpedRateModelWithPores
+
+DEFAULT_OPTIONS = Options({
+    "commit_message": "E8",
+    "debug": False,
+    "push": True,
+})
 
 
 def setup_references():
@@ -225,7 +229,6 @@ def set_total_capacity(knauer_process, total_capacity):
     column.q = [specific_capacity] + (column.n_comp - 1) * [0]
 
 
-@tracks_results
 def determine_total_capacity(
     prior_branch_name=None,
 ):
@@ -248,29 +251,20 @@ def determine_total_capacity(
 
 # %% Main
 
-def main(
-    prior_branch_name=None,
-    debug=False,
-):
-    commit_message = "E8"
-    if prior_branch_name is None:
-        commit_message += "_synthetic"
-
+@tracks_results
+def main(repo:ProjectRepo, options: Options):
     return determine_total_capacity(
-        prior_branch_name=prior_branch_name,
-        debug=debug,
-        commit_message=commit_message,
+        prior_branch_name=options.prior_branch_name
     )
 
 
 if __name__ == "__main__":
-    debug = True
-    prior_branch_name = None
+    options = DEFAULT_OPTIONS.copy()
+    options.debug = True
+    options.prior_branch_name = None
 
-    total_capacity, new_branch = main(
-        prior_branch_name=prior_branch_name,
-        debug=debug,
-    )
+    total_capacity, posteriour_branch_name = main(options)
+
 
 
 # %% Pytest
