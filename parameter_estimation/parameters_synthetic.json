@@ -3,9 +3,9 @@
         "init_liquid_volume": 1e-7
     },
     "tubing_pre_injection": {
-        "length": 1,
+        "length": 1.0,
         "diameter": 0.00075,
-        "axial_dispersion": 0,
+        "axial_dispersion": 0.0,
         "discretization": {
             "ncol": 100
         }
@@ -16,7 +16,7 @@
         }
     },
     "tubing_pre_column": {
-        "length": 1,
+        "length": 1.0,
         "diameter": 0.00075,
         "axial_dispersion": 1e-3,
         "discretization": {
@@ -51,19 +51,19 @@
         "binding_model": {
             "adsorption_rate": {
                 "Lysozyme": 1e-6,
-                "Salt": 1
+                "Salt": 1.0
             },
             "desorption_rate": {
-                "Lysozyme": 1,
-                "Salt": 1
+                "Lysozyme": 1.0,
+                "Salt": 1.0
             },
             "characteristic_charge": {
-                "Lysozyme": 5,
-                "Salt": 1
+                "Lysozyme": 5.0,
+                "Salt": 1.0
             },
             "steric_factor": {
-                "Lysozyme": 0,
-                "Salt": 0
+                "Lysozyme": 0.0,
+                "Salt": 0.0
             }
         },
         "discretization": {
@@ -79,7 +79,7 @@
         }
     },
     "tubing_detectors": {
-        "length": 1,
+        "length": 1.0,
         "diameter": 0.00075,
         "axial_dispersion": 1e-4,
         "discretization": {
