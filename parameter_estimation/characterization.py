@@ -52,7 +52,7 @@ class CharacterizeBase(OptimizationProblem):
         if not isinstance(processes, list):
             processes = [processes]
 
-        super().__init__(name=processes[0].name)
+        super().__init__(name=name)
 
         for process in processes:
             self.add_evaluation_object(process)
@@ -628,7 +628,7 @@ def setup_characterization(
 
     characterization_options = characterization_options or {}
     name = characterization_options.pop("name", knauer_processes[0].name)
-    settings.working_directory = results_directory / name
+    settings.working_directory = results_directory
     characterization = CharacterizationType(
         name=name,
         processes=knauer_processes,
