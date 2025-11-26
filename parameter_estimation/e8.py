@@ -20,24 +20,19 @@ capacity constant.
 
 # %% Imports
 
+from typing import Optional
+
 from CADETProcess.processModel import LumpedRateModelWithPores
 from CADETProcess.reference import ReferenceIO
-from CADETProcess.solution import slice_solution
 from cadetrdm import Options, ProjectRepo, tracks_results
 import numpy as np
 import pytest
 
-from knauer import KnauerExperimentalData, Step
+from knauer import KnauerExperimentalData, KnauerSystemProcess, Step
 from parameters import (
     component_system_naoh,
     knauer_system_options,
-    c_dextran,
-    n_sample_dextran,
-    time_offset,
-    cycle_time_bed,
     flow_rate,
-    metrics,
-    optimizer_options,
 )
 from utils import (
     experimental_data_path,
@@ -51,8 +46,7 @@ from utils import (
 
 pH = 12.260
 c_NaOH = 10**-(14-pH)*1000  # mM
-
-start_NaOH = 188 * 60   # s
+start_NaOH = 188 * 60  # s
 
 knauer_system_options = knauer_system_options.copy()
 knauer_system_options['ColumnModel'] = LumpedRateModelWithPores
@@ -64,7 +58,20 @@ DEFAULT_OPTIONS = Options({
 })
 
 
-def setup_references():
+def setup_references(time_offset: Optional[float] = 0.0) -> list[ReferenceIO]:
+    """
+    Setup references.
+
+    Parameters
+    ----------
+    time_offset : float, optional
+        Time at which titration starts. The default is 0.0.
+
+    Returns
+    -------
+    list[ReferenceIO]
+        List of experimental data / ReferenceIO objects.
+    """
     references = []
     for run in range(3):
         file_path = experimental_data_path / "e8" / f"run_{run}.csv"
@@ -72,13 +79,15 @@ def setup_references():
         knauer_data = KnauerExperimentalData(
             file_path=file_path,
             flow_rate=flow_rate,
+            time_offset=time_offset
         )
         references.append(knauer_data.conductivity)
+
     return references
 
 
-def setup_process():
-    """Set up process."""
+def setup_process() -> Step:
+    """Set up breakthrough / step elution process."""
     return Step(
         "e8",
         component_system_naoh,
@@ -92,14 +101,26 @@ def setup_process():
 
 # %% Process data
 
-def remove_equilibration_signal(
-        reference: ReferenceIO,
-        start_elution,
-        ) -> ReferenceIO:
-    return slice_solution(reference, coordinates={"time": (start_elution, None)})
+def determine_breakthrough(
+    reference: ReferenceIO,
+    percentage: Optional[float] = 10.0
+) -> float:
+    """
+    Determine breakthrough time of experimental data.
 
+    Parameters
+    ----------
+    reference : ReferenceIO
+        The experimental data.
+    percentage : float, optional
+        Percentage at which to consider breakthrough. The default is 10.
 
-def determine_breakthrough(reference: ReferenceIO, percentage: float = 10) -> float:
+    Returns
+    -------
+    float
+        The breakthrough time.
+
+    """
     # Calculate the maximum value of the array
     max_value = reference.solution.max()
 
@@ -127,7 +148,7 @@ def calculate_NaOH_volume(breakthrough_10: float) -> float:
     float
         Volume of NaOH used to get to the 10 % breakthrough point.
     """
-    return (breakthrough_10 - start_NaOH) * flow_rate
+    return breakthrough_10 * flow_rate
 
 
 def calculate_total_capacity(V_NaOH: float, c_NaOH: float) -> float:
@@ -199,14 +220,21 @@ def calculate_specific_capacity(
     return total_capacity / ((1 - total_porosity) * column_volume)
 
 
-def calculate_V_NaOH_used():
+def calculate_V_NaOH_used() -> float:
+    """
+    Calculate the volume of NaOH used.
+
+    Returns
+    -------
+    V_NaOH_mean : float
+        The mean volume of NaOH used.
+
+    """
     V_NaOHs = []
     breakthrough_10s = []
 
-    references = setup_references()
+    references = setup_references(start_NaOH)
     for reference in references:
-
-        reference = remove_equilibration_signal(reference, start_NaOH)
         breakthrough_10 = determine_breakthrough(reference, percentage=10)
         breakthrough_10s.append(breakthrough_10)
 
@@ -218,7 +246,20 @@ def calculate_V_NaOH_used():
     return V_NaOH_mean
 
 
-def set_total_capacity(knauer_process, total_capacity):
+def set_total_capacity(
+    knauer_process: KnauerSystemProcess,
+    total_capacity: float,
+) -> None:
+    """
+    Calculate and set specific capacity from total capcity.
+
+    Parameters
+    ----------
+    knauer_process : KnauerProcess
+        The knauer process for which to update the capacity.
+    total_capacity : float
+        The total capacity.
+    """
     column = knauer_process.flow_sheet.column
 
     specific_capacity = calculate_specific_capacity(
@@ -230,8 +271,23 @@ def set_total_capacity(knauer_process, total_capacity):
 
 
 def determine_total_capacity(
-    prior_branch_name=None,
-):
+    prior_branch_name: Optional[str] = None,
+) -> float:
+    """
+    Determine total capacity.
+
+    Parameters
+    ----------
+    prior_branch_name : Optional[str], optional
+        The name of the branch from which to load parameters.
+        If None, synthetic data is used. The default is None.
+
+    Returns
+    -------
+    float
+        The total capacity.
+
+    """
     parameters = load_parameters(prior_branch_name)
     process = setup_process()
     update_process_parameters(process, parameters)
@@ -262,6 +318,7 @@ if __name__ == "__main__":
     options = DEFAULT_OPTIONS.copy()
     options.debug = True
     options.prior_branch_name = None
+    options.prior_branch_name = "2025-11-26_09-51-51_main_4ef30b8"
 
     total_capacity, posteriour_branch_name = main(options)
 

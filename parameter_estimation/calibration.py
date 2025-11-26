@@ -127,11 +127,11 @@ def correct_baseline(
 
 
 def normalize_area(
-        reference: ReferenceIO,
-        target_area: float,
-        start: Optional[float] = None,
-        end: Optional[float] = None,
-        ) -> ReferenceIO:
+    reference: ReferenceIO,
+    target_area: float,
+    start: Optional[float] = None,
+    end: Optional[float] = None,
+) -> ReferenceIO:
     """
     Normalize the peak area of a ReferenceIO object.
 
@@ -203,10 +203,10 @@ def polynomial_model(x, *coefficients):
 
 
 def fit_polynomial(
-        x_data,
-        y_data,
-        degree
-        ) -> list:
+    x_data,
+    y_data,
+    degree
+) -> list:
     """
     Fit a polynomial model to the given data.
 
@@ -234,9 +234,9 @@ def fit_polynomial(
 
 
 def apply_polynomial_calibration(
-        reference: ReferenceIO,
-        coefficients: np.ndarray
-        ) -> np.ndarray:
+    reference: ReferenceIO,
+    coefficients: np.ndarray
+) -> np.ndarray:
     """
     Apply a polynomial calibration to a data array using the provided coefficients.
 
