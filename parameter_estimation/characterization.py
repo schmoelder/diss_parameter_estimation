@@ -296,7 +296,7 @@ class CharacterizeAdsorptionParameters(CharacterizeBase):
         variables.append({
             "name": "characteristic_charge",
             "parameter_path": "flow_sheet.column.binding_model.characteristic_charge",
-            "lb": 1, "ub": 10,
+            "lb": 4, "ub": 9,
             "indices": [component_index],
             "transform": "auto",
         })
