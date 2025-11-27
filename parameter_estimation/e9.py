@@ -229,14 +229,15 @@ from CADETProcess.tools.yamamoto import (
     GradientExperiment, plot_experiments, fit_parameters, YamamotoResults
 )
 
-def setup_yamamoto_experiments(pH, column_volume):
-    references_lysozyme, references_salt = setup_references(pH=pH)
+def setup_yamamoto_experiments(pH, column_volume, detector_offset):
+    references_lysozyme, _ = setup_references(pH=pH)
+    _, references_salt = setup_references(pH=pH, time_offset=detector_offset)
 
     def create_experiment(ref_salt, ref_protein, gradient_length_cv):
         time = ref_salt.time
 
         c_salt = ref_salt.solution
-        c_protein = ref_protein.solution
+        c_protein = ref_protein.solution[0:len(time)]
 
         experiment = GradientExperiment(
             time,
@@ -266,8 +267,12 @@ def yamamoto(
     prior_parameters = load_parameters(prior_branch_name)
     update_process_parameters(process, prior_parameters)
     column = process.flow_sheet.column
+    tubing_detector = process.flow_sheet.tubing_detectors
+    detector_offset = tubing_detector.volume / flow_rate
 
-    experiments = setup_yamamoto_experiments(pH, column.volume)
+    experiments = setup_yamamoto_experiments(
+        pH, column.volume, detector_offset
+    )
     plot_experiments(experiments)
 
     yamamoto_results = fit_parameters(experiments, column)
