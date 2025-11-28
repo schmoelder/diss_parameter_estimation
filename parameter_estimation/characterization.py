@@ -29,7 +29,7 @@ class ReferenceConfig:
     reference: ReferenceIO
     solution_path: str
     metrics: list[Literal["Shape", "ShapeFront", "NRMSE"]]
-    components: Optional[list[str]] = None,
+    components: Optional[list[str]] = None
     process: Optional[KnauerSystemProcess] = None
     start: Optional[float] = None
     end: Optional[float] = None
