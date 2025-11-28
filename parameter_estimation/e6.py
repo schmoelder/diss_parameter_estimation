@@ -56,6 +56,12 @@ DEFAULT_OPTIONS = Options({
     "commit_message": "E6",
     "debug": False,
     "push": True,
+    "_temp_directory_base": None,
+    "_cache_directory_base": None,
+    "_cadet_options": {
+        "install_path": None,
+        "use_dll": True,
+    },
 })
 
 
@@ -97,6 +103,9 @@ def run_optimization(
     reference,
     include_axial_dispersion=True,
     prior_branch_name=None,
+    cache_directory_base=None,
+    temp_directory_base=None,
+    cadet_options=None,
 ):
     """Run optimization."""
     characterization_options = {
@@ -120,6 +129,9 @@ def run_optimization(
         characterization_options=characterization_options,
         optimizer_options=optimizer_options,
         prior_branch_name=prior_branch_name,
+        cache_directory_base=cache_directory_base,
+        temp_directory_base=temp_directory_base,
+        cadet_options=cadet_options,
     )
 
 # %% Run optimization
@@ -138,7 +150,10 @@ def main(repo:ProjectRepo, options: Options):
         process,
         reference,
         include_axial_dispersion=options.include_axial_dispersion,
-        prior_branch_name=options.prior_branch_name
+        prior_branch_name=options.prior_branch_name,
+        temp_directory_base=options._temp_directory_base,
+        cache_directory_base=options._cache_directory_base,
+        cadet_options=options._cadet_options,
     )
 
 

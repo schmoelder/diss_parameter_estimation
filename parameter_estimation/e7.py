@@ -51,6 +51,12 @@ DEFAULT_OPTIONS = Options({
     "commit_message": "E7",
     "debug": False,
     "push": True,
+    "_temp_directory_base": None,
+    "_cache_directory_base": None,
+    "_cadet_options": {
+        "install_path": None,
+        "use_dll": True,
+    },
 })
 
 
@@ -103,6 +109,9 @@ def run_optimization(
     include_film_diffusion=False,
     prior_branch_name=None,
     debug=False,
+    cache_directory_base=None,
+    temp_directory_base=None,
+    cadet_options=None,
 ):
     """Run optimization."""
     include_pore_diffusion = "grm" in process.name
@@ -126,6 +135,9 @@ def run_optimization(
         characterization_options=characterization_options,
         optimizer_options=optimizer_options,
         prior_branch_name=prior_branch_name,
+        cache_directory_base=cache_directory_base,
+        temp_directory_base=temp_directory_base,
+        cadet_options=cadet_options,
     )
 
 
@@ -145,7 +157,10 @@ def main(repo:ProjectRepo, options: Options):
         reference,
         include_film_diffusion=options.include_film_diffusion,
         include_axial_dispersion=options.include_axial_dispersion,
-        prior_branch_name=options.prior_branch_name
+        prior_branch_name=options.prior_branch_name,
+        temp_directory_base=options._temp_directory_base,
+        cache_directory_base=options._cache_directory_base,
+        cadet_options=options._cadet_options,
     )
 
 

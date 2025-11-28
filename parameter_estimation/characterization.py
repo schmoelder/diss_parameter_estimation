@@ -44,13 +44,17 @@ class CharacterizeBase(OptimizationProblem):
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         reference_configs: ReferenceConfig | list[ReferenceConfig],
         variables: list[dict[str, Any]],
+        cache_directory: Optional[os.PathLike] = None,
+        cadet_options: Optional[dict] = None,
     ) -> None:
-
         # Ensure processes is always a list
         if not isinstance(processes, list):
             processes = [processes]
 
-        super().__init__(name=name)
+        super().__init__(
+            name=name,
+            cache_directory=cache_directory,
+        )
 
         for process in processes:
             self.add_evaluation_object(process)
@@ -59,7 +63,7 @@ class CharacterizeBase(OptimizationProblem):
         for var in variables:
             self.add_variable(**var)
 
-        simulator = Cadet()
+        simulator = Cadet(**cadet_options)
         self.add_evaluator(simulator)
 
         comparators = setup_comparators(processes, reference_configs)
@@ -98,8 +102,8 @@ class CharacterizeTubing(CharacterizeBase):
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         tubing: str,
         reference_configs: ReferenceConfig | list[ReferenceConfig],
+        **kwargs,
     ) -> None:
-
         super().__init__(
             name=name,
             processes=processes,
@@ -118,6 +122,7 @@ class CharacterizeTubing(CharacterizeBase):
                     "transform": "auto"
                 }
             ],
+            **kwargs,
         )
 
 
@@ -129,8 +134,8 @@ class CharacterizePreInjection(CharacterizeBase):
         name: str,
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         reference_configs: ReferenceConfig | list[ReferenceConfig],
+        **kwargs,
     ) -> None:
-
         super().__init__(
             name=name,
             processes=processes,
@@ -149,6 +154,7 @@ class CharacterizePreInjection(CharacterizeBase):
                     "transform": "auto"
                 }
             ],
+            **kwargs,
         )
 
 
@@ -160,6 +166,7 @@ class CharacterizeBed(CharacterizeBase):
         name: str,
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         reference_configs: ReferenceConfig | list[ReferenceConfig],
+        **kwargs,
     ) -> None:
         super().__init__(
             name=name,
@@ -179,6 +186,7 @@ class CharacterizeBed(CharacterizeBase):
                     "transform": "auto",
                 }
             ],
+            **kwargs,
         )
 
 
@@ -195,6 +203,7 @@ class CharacterizeParticles(CharacterizeBase):
         include_film_diffusion: Optional[bool] = False,
         include_pore_diffusion: Optional[bool] = False,
         component_index: Optional[int] = 0,
+        **kwargs,
     ) -> None:
         variables = []
         if include_axial_dispersion:
@@ -236,7 +245,8 @@ class CharacterizeParticles(CharacterizeBase):
             name=name,
             processes=processes,
             reference_configs=reference_configs,
-            variables=variables
+            variables=variables,
+            **kwargs,
         )
 
 
@@ -248,6 +258,7 @@ class CharacterizeCapacity(CharacterizeBase):
         name: str,
         processes: KnauerSystemProcess | list[KnauerSystemProcess],
         reference_configs: ReferenceConfig | list[ReferenceConfig],
+        **kwargs,
     ) -> None:
         super().__init__(
             name=name,
@@ -261,6 +272,7 @@ class CharacterizeCapacity(CharacterizeBase):
                     "transform": "auto"
                 },
             ],
+            **kwargs,
         )
 
 
@@ -276,6 +288,7 @@ class CharacterizeAdsorptionParameters(CharacterizeBase):
         include_film_diffusion: Optional[bool] = False,
         include_pore_diffusion: Optional[bool] = False,
         component_index: Optional[int] = 0,
+        **kwargs,
     ) -> None:
         column = processes[0].flow_sheet.column
         binding_model = column.binding_model
@@ -364,6 +377,7 @@ class CharacterizeAdsorptionParameters(CharacterizeBase):
             processes=processes,
             reference_configs=reference_configs,
             variables=variables,
+            **kwargs,
         )
 
         if is_kinetic:
@@ -601,6 +615,9 @@ def setup_characterization(
     CharacterizationType: Type[CharacterizeBase],
     reference_configs: list,
     characterization_options: Optional[dict] = None,
+    cache_directory_base: Optional[os.PathLike] = None,
+    temp_directory_base: Optional[os.PathLike] = None,
+    cadet_options: Optional[dict] = None,
 ) -> CharacterizeBase:
     """
     Initialize the characterization object.
@@ -615,6 +632,12 @@ def setup_characterization(
         Reference configurations for the characterization.
     characterization_options : Optional[dict], optional
         Additional options for the characterization process. The default is None.
+    cache_directory_base : Optional[os.PathLike], optional
+        Base directory for optimization cache.
+    temp_directory_base : Optional[os.PathLike], optional
+        Base directory for temp directory.
+    cadet_options: Optional[dict]
+        Additional options for the CADET-Core simulator.
 
     Returns
     -------
@@ -626,12 +649,23 @@ def setup_characterization(
 
     characterization_options = characterization_options or {}
     name = characterization_options.pop("name", knauer_processes[0].name)
+
     settings.working_directory = results_directory
+
+    if temp_directory_base is not None:
+        settings.temp_dir = temp_directory_base / name
+
+    cache_directory = None
+    if cache_directory_base is not None:
+        cache_directory = cache_directory_base / name
+
     characterization = CharacterizationType(
         name=name,
         processes=knauer_processes,
         reference_configs=reference_configs,
         **characterization_options,
+        cache_directory=cache_directory,
+        cadet_options=cadet_options,
     )
     return characterization
 
@@ -649,6 +683,9 @@ def setup_optimization_problem(
     characterization_options: Optional[dict] = None,
     parameters_overwrite: Optional[dict] = None,
     prior_branch_name: Optional[str] = None,
+    cache_directory_base: Optional[os.PathLike] = None,
+    temp_directory_base: Optional[os.PathLike] = None,
+    cadet_options: Optional[dict] = None,
 ) -> tuple[CharacterizeBase, list[KnauerSystemProcess], dict]:
     """
     Set up the complete characterization object including processes and reference configurations.
@@ -680,6 +717,12 @@ def setup_optimization_problem(
     prior_branch_name : Optional[str]
         Name of the output repository branch to be used to load prior parameters.
         If None are provided, synthetic data is used.
+    cache_directory_base : Optional[os.PathLike], optional
+        Base directory for optimization cache.
+    temp_directory_base : Optional[os.PathLike], optional
+        Base directory for temp directory.
+    cadet_options: Optional[dict]
+        Additional options for the CADET-Core simulator.
 
     Returns
     -------
@@ -715,6 +758,9 @@ def setup_optimization_problem(
         CharacterizationType,
         reference_configs,
         characterization_options,
+        cache_directory_base=cache_directory_base,
+        temp_directory_base=temp_directory_base,
+        cadet_options=cadet_options,
     )
     return characterization, knauer_processes, prior_parameters
 
@@ -733,6 +779,9 @@ def optimize(
     parameters_overwrite: Optional[dict] = None,
     optimizer_options: Optional[dict] = None,
     prior_branch_name: Optional[str] = None,
+    cache_directory_base: Optional[os.PathLike] = None,
+    temp_directory_base: Optional[os.PathLike] = None,
+    cadet_options: Optional[dict] = None,
 ) -> OptimizationResults:
     """
     Run optimization to characterize Knauer system parameters.
@@ -766,6 +815,12 @@ def optimize(
     prior_branch_name : Optional[str]
         Name of the output repository branch to be used to load prior parameters.
         If None are provided, synthetic data is used.
+    cache_directory_base : Optional[os.PathLike], optional
+        Base directory for optimization cache.
+    temp_directory_base : Optional[os.PathLike], optional
+        Base directory for temp directory.
+    cadet_options: Optional[dict]
+        Additional options for the CADET-Core simulator.
 
     Returns
     -------
@@ -785,6 +840,9 @@ def optimize(
         characterization_options,
         parameters_overwrite,
         prior_branch_name,
+        cache_directory_base=cache_directory_base,
+        temp_directory_base=temp_directory_base,
+        cadet_options=cadet_options,
     )
     optimizer = setup_optimizer(
         characterization,

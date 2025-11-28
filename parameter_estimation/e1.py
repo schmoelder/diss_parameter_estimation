@@ -47,6 +47,12 @@ DEFAULT_OPTIONS = Options({
     "commit_message": "E1",
     "debug": False,
     "push": True,
+    "_temp_directory_base": None,
+    "_cache_directory_base": None,
+    "_cadet_options": {
+        "install_path": None,
+        "use_dll": True,
+    },
 })
 
 
@@ -83,6 +89,9 @@ def run_optimization(
     results_directory,
     process,
     reference,
+    cache_directory_base=None,
+    temp_directory_base=None,
+    cadet_options=None,
 ):
     """Run optimization."""
     return optimize(
@@ -96,6 +105,9 @@ def run_optimization(
         characterization_options={"tubing": tubing},
         optimizer_options=optimizer_options,
         prior_branch_name=None,
+        cache_directory_base=cache_directory_base,
+        temp_directory_base=temp_directory_base,
+        cadet_options=cadet_options,
     )
 
 
@@ -110,7 +122,14 @@ def main(repo:ProjectRepo, options: Options):
     reference = None if options.use_synthetic_data else setup_reference()
 
     # Run optimization
-    return run_optimization(repo.output_path, process, reference)
+    return run_optimization(
+        repo.output_path,
+        process,
+        reference,
+        temp_directory_base=options._temp_directory_base,
+        cache_directory_base=options._cache_directory_base,
+        cadet_options=options._cadet_options,
+    )
 
 
 if __name__ == "__main__":
