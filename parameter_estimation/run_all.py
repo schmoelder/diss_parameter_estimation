@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 from e1 import main as e1_main, DEFAULT_OPTIONS as e1_options
 from e2 import main as e2_main, DEFAULT_OPTIONS as e2_options
 from e3 import main as e3_main, DEFAULT_OPTIONS as e3_options
@@ -9,6 +12,33 @@ from e8 import main as e8_main, DEFAULT_OPTIONS as e8_options
 from e9 import main as e9_main, DEFAULT_OPTIONS as e9_options
 
 # %%
+
+from parameters import optimizer_options
+optimizer_options["progress_frequency"] = 1
+
+username = os.getlogin()
+local_options = {
+    '_cadet_options': {
+        'install_path': None,
+        'use_dll': True,
+    }
+}
+if username == 'jo':
+    local_options['_temp_directory_base'] = Path('/dev/shm/CADET-Process/tmp')
+    local_options['_cache_directory_base'] = Path('/dev/shm/CADET-Process/cache/')
+    local_options['_cadet_options']['install_path'] = None
+elif username == 'schmoelder':
+    local_options['_temp_directory_base'] = Path('/dev/shm/schmoelder/CADET-Process/tmp')
+    local_options['_cache_directory_base'] = Path('/dev/shm/schmoelder/CADET-Process/cache/')
+    local_options['_cadet_options']['install_path'] = None
+    print(os.uname().release)
+    if os.uname().release[0] != '6':
+        raise Exception(
+            "Please ensure that all environments are consistent. "
+            "All studies should be performed on IBT Servers running Linux 6.8"
+        )
+else:
+    raise Exception("Unknown environment.")
 
 cases = {
     "e1": {
@@ -81,6 +111,7 @@ if __name__ == "__main__":
             # Update options
             options = {
                 **opt,
+                **local_options,
                 "prior_branch_name": prior_branch_name,
                 "debug": debug,
             }
