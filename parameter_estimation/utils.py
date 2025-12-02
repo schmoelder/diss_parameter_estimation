@@ -39,6 +39,8 @@ def load_parameters_from_file(file_name: os.PathLike) -> dict:
     with open(file_name) as f:
         parameters = json.load(f)
 
+    parameters["branch_name"] = file_name.parent.name
+
     return parameters
 
 
