@@ -4,6 +4,7 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from tabulate import tabulate
 
 from CADETProcess.simulator import Cadet
@@ -442,3 +443,32 @@ def embed_figure_in_directive(
     embedded_figure += "```"
 
     return embedded_figure
+
+
+# %% Plot objectives (b&w)
+
+def plot_meta_score(
+    study_root: os.PathLike,
+    branch_name: str,
+) -> tuple[plt.Figure, plt.Axes]:
+    load_parameters_from_previous_run(branch_name)
+    data = pd.read_csv(
+        Path(study_root) / 'output_cached' / branch_name / "results_e9_lrmp/results_all.csv"
+    )
+
+    sum_nrmse = data.iloc[:, -4:].sum(axis=1)
+    characteristic_charge = data["characteristic_charge"]
+
+    fig, ax = plt.subplots()
+
+    ax.plot(
+        characteristic_charge, sum_nrmse,
+        'k', marker="o", linestyle="None", markersize=1,
+    )
+    ax.set_xlabel("Characteristic charge / -")
+    ax.set_ylabel('NRMSE / -')
+    ax.set_yscale("log")
+
+    fig.tight_layout()
+
+    return fig, ax
