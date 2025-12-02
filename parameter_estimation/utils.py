@@ -16,6 +16,10 @@ from knauer import KnauerSystemProcess
 
 repo = ProjectRepo(__file__)
 
+experimental_data_branch = "2025-11-23_15-36-31_main_ab9cb48"  # experiments
+parameters_branch_e7_film_diffusion = "2025-11-28_14-06-29_main_281bffa"
+final_parameters_branch = "2025-11-28_18-24-13_main_d792299"  # pH = 5.0
+
 
 def get_experimental_data_path() -> os.PathLike:
     """
@@ -25,8 +29,7 @@ def get_experimental_data_path() -> os.PathLike:
     The branch name is currently hard-coded and needs to be updated in case the data
     changes.
     """
-    branch_name = "2025-11-23_15-36-31_main_ab9cb48"
-    cache_path = repo.copy_data_to_cache(branch_name)
+    cache_path = repo.copy_data_to_cache(experimental_data_branch)
 
     return cache_path / "experimental_data"
 
