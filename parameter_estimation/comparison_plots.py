@@ -25,7 +25,7 @@ def setup_figure(
 ) -> tuple[plt.Figure, plt.Axes, ...]:
     fig, ax = plt.subplots(figsize=figsize)
 
-    ax.set_xlabel(r'$\mathrm{time}~/~min$')
+    ax.set_xlabel(r'$\text{time}~/~\text{min}$')
 
     if isinstance(axes, str):
         axes = [axes]
@@ -39,7 +39,7 @@ def setup_figure(
             ax_new = ax.twinx()
             ax_new.spines.right.set_position(("axes", 1 + (i-1)*0.2))
 
-        ax_new.set_ylabel(fr'$\mathrm{{c_{{{ax_i}}}~/~\text{{mM}}}}$')
+        ax_new.set_ylabel(fr'$c_{{\text{{{ax_i}}}}}~\text{{mM}}$')
 
         return_axes.append(ax_new)
 
