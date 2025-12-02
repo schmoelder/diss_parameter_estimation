@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -10,7 +12,7 @@ from CADETProcess.solution import SolutionIO, slice_solution
 from CADETProcess.dataStructure import get_nested_value
 
 from knauer import KnauerSystemProcess
-from utils import update_process_parameters
+from utils import update_process_parameters, load_parameters_from_previous_run
 
 
 simulator = Cadet()
@@ -403,3 +405,40 @@ def create_lysozyme_table(parameters):
     formatted_table = embed_table_in_directive(table, caption, name)
 
     return formatted_table
+
+
+def embed_figure_in_directive(
+    study_root: os.PathLike,
+    branch_name: str,
+    figure_path: os.PathLike,
+    name: None,
+    caption: str,
+    scale: Optional[float] = 100.0,
+) -> str:
+    """Format figure to embed it in MyST figure directive."""
+    load_parameters_from_previous_run(branch_name)
+
+    case_dir = Path(study_root) / 'output_cached' / branch_name
+    results_dir_name = [
+        d for d in os.listdir(case_dir)
+        if os.path.isdir(case_dir / d) and d.startswith("results_")
+    ][0]
+
+    results_dir = case_dir / results_dir_name
+    relative_results_dir = results_dir.relative_to(Path.cwd(), walk_up=True)
+
+    figure_path = relative_results_dir / figure_path
+    if not figure_path.exists():
+        raise FileNotFoundError("Figure not found.")
+
+    embedded_figure = f"```{{figure}} {str(figure_path)}"
+
+    embedded_figure += "\n"
+    if name:
+        embedded_figure += f":name: {name}\n"
+    embedded_figure += f":scale: {scale}\n"
+    embedded_figure += "\n"
+    embedded_figure += f"{caption}\n"
+    embedded_figure += "```"
+
+    return embedded_figure
