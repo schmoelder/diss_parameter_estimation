@@ -71,55 +71,76 @@ DEFAULT_OPTIONS = Options({
 })
 
 gradient_lengths_cv = [4, 8, 12, 16]
+gradient_lengths_cv_validation = [6, 14]
 
 peaks = {
     4.0: {
         4: [50*60, 58*60],
+        6: [60*60, 70*60],
         8: [68*60, 78*60],
         12: [85*60, 98*60],
+        14: [96*60, 106*60],
         16: [100*60, 116*60],
     },
     4.25: {
         4: [48*60, 56*60],
+        6: [55*60, 65*60],
         8: [64*60, 74*60],
         12: [80*60, 94*60],
+        14: [90*60, 100*60],
         16: [95*60, 108*60],
     },
     4.5: {
         4: [46*60, 56*60],
+        6: [55*60, 63*60],
         8: [61*60, 72*60],
         12: [75*60, 87*60],
+        14: [85*60, 95*60],
         16: [90*60, 103*60],
     },
     4.75: {
         4: [45*60, 54*60],
+        6: [54*60, 62*60],
         8: [58*60, 69*60],
         12: [71*60, 83*60],
+        14: [81*60, 90*60],
         16: [85*60, 98*60],
     },
     5.0: {
         4: [44*60, 53*60],
+        6: [52*60, 59*60],
         8: [55*60, 68*60],
         12: [70*60, 83*60],
+        14: [80*60, 90*60],
         16: [80*60, 97*60],
     },
 }
 
 
-def get_peak_times(pH, time_offset=0.0):
-    start_times = [peak[0]-time_offset for peak in peaks[pH].values()]
-    end_times = [peak[1]-time_offset for peak in peaks[pH].values()]
+def get_peak_times(pH, time_offset=0.0, use_validation=False):
+    if use_validation:
+        cvs = gradient_lengths_cv_validation
+    else:
+        cvs = gradient_lengths_cv
+
+    start_times = [peaks[pH][cv][0] - time_offset for cv in cvs]
+    end_times = [peaks[pH][cv][1] - time_offset for cv in cvs]
 
     return start_times, end_times
 
 
-def setup_references(pH, time_offset=0.0):
+def setup_references(pH, time_offset=0.0, use_validation=False):
     """Set up reference data."""
+    if use_validation:
+        cvs = gradient_lengths_cv_validation
+    else:
+        cvs = gradient_lengths_cv
+
     references_lysozyme: list[ReferenceIO] = []
     references_salt: list[ReferenceIO] = []
-    start_times, end_times = get_peak_times(pH, time_offset)
+    start_times, end_times = get_peak_times(pH, time_offset, use_validation)
 
-    for gradient, start, end in zip(gradient_lengths_cv, start_times, end_times):
+    for gradient, start, end in zip(cvs, start_times, end_times):
         file_path = experimental_data_path / "e9" / f"Lysozyme_pH_{pH}" / f"{gradient}_cv.csv"
 
         knauer_data = KnauerExperimentalData(
@@ -184,11 +205,17 @@ def setup_lwe(
 def setup_lwe_processes(
     include_pore_diffusion: bool = False,
     is_kinetic: bool = True,
+    use_validation=False,
 ):
     """Set up all gradient processes."""
+    if use_validation:
+        cvs = gradient_lengths_cv_validation
+    else:
+        cvs = gradient_lengths_cv
+
     return [
         setup_lwe(gradient, include_pore_diffusion, is_kinetic)
-        for gradient in gradient_lengths_cv
+        for gradient in cvs
     ]
 
 

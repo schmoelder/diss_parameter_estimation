@@ -222,7 +222,56 @@ def plot_resin_titration(plot_single=False):
 
 # %% Characterization Lysozyme
 
-def plot_lysozyme(parameters_e9, pH, include_pore_diffusion, is_kinetic):
+def plot_lysozyme(
+    parameters_e9,
+    pH,
+    include_pore_diffusion,
+    is_kinetic,
+    use_validation=False,
+):
+    fig_lysozyme, ax_lysozyme, ax_salt = setup_figure(axes=["Lysozyme", "Salt"])
+
+    from e9 import (
+        setup_references,
+        setup_lwe_processes,
+        solution_path_lysozyme,
+        solution_path_salt,
+    )
+
+    references_lysozyme, references_salt = setup_references(
+        pH,
+        use_validation=use_validation,
+    )
+    lwe_processes = setup_lwe_processes(
+        include_pore_diffusion=include_pore_diffusion,
+        is_kinetic=is_kinetic,
+        use_validation=use_validation,
+    )
+
+    for lwe_process, reference_lysozyme, reference_salt in zip(
+            lwe_processes, references_lysozyme, references_salt
+    ):
+        simulation_results = update_parameters_and_simulate(lwe_process, parameters_e9)
+
+        solution_lysozyme = extract_solution(
+            simulation_results, solution_path_lysozyme, components=["Lysozyme"]
+        )
+        plot_comparison(ax_lysozyme, solution_lysozyme, reference_lysozyme, "darkblue")
+
+        solution_salt = extract_solution(
+            simulation_results, solution_path_salt, components=["Salt"]
+        )
+        plot_comparison(ax_salt, solution_salt, reference_salt, "darkred")
+
+
+    ax_lysozyme.set_xlim(0, 125)
+
+    fig_lysozyme.tight_layout()
+
+    return fig_lysozyme, ax_lysozyme, ax_salt
+
+
+def plot_validation(parameters_e9, pH, include_pore_diffusion, is_kinetic):
     fig_lysozyme, ax_lysozyme, ax_salt = setup_figure(axes=["Lysozyme", "Salt"])
 
     from e9 import (
@@ -258,7 +307,6 @@ def plot_lysozyme(parameters_e9, pH, include_pore_diffusion, is_kinetic):
     fig_lysozyme.tight_layout()
 
     return fig_lysozyme, ax_lysozyme, ax_salt
-
 
 # %% Create tables
 
