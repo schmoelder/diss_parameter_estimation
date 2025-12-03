@@ -293,9 +293,13 @@ def determine_total_capacity(
     update_process_parameters(process, parameters)
 
     V_NaOH_used = calculate_V_NaOH_used()
-    V_NaOH = V_NaOH_used - process.flow_sheet.system_dead_volume
+    system_dead_volume = process.flow_sheet.system_dead_volume
+    V_NaOH = V_NaOH_used - system_dead_volume
     total_capacity = calculate_total_capacity(V_NaOH, c_NaOH)
 
+    parameters["V_NaOH_used"] = V_NaOH_used
+    parameters["system_dead_volume"] = system_dead_volume
+    parameters["V_NaOH"] = V_NaOH
     parameters["total_capacity"] = total_capacity
     parameters["prior_branch_name"] = prior_branch_name
     parameters["case"] = "e8"
