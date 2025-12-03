@@ -251,6 +251,7 @@ def plot_resin_titration(plot_single=False):
         fig_resin_titration, ax_resin_titration = reference.plot(end=120*60)
         ax_resin_titration.axvline(x=breakthrough_avg/60, color="darkred", linestyle=":")
         ax_resin_titration.set_ylabel("Conductivity / mS")
+        ax_resin_titration.get_legend().remove()
 
         return fig_resin_titration, ax_resin_titration
 
@@ -260,6 +261,7 @@ def plot_resin_titration(plot_single=False):
         fig_resin_titration, ax_resin_titration = reference.plot(end=120*60)
         ax_resin_titration.axvline(x=breakthrough_10/60, color="darkred", linestyle=":")
         ax_resin_titration.set_ylabel("Conductivity / mS")
+        ax_resin_titration.get_legend().remove()
         figs.append(fig_resin_titration)
         axs.append(ax_resin_titration)
 
