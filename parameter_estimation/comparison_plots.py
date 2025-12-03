@@ -459,7 +459,7 @@ def create_lysozyme_table(parameters):
     column_parameters = parameters["column"]
     rows += [
         ["Characteristic charge", "Lysozyme", fmt(column_parameters["binding_model"]["characteristic_charge"]["Lysozyme"]), r"$-$"],
-        ["Equilibrium constant", "Lysozyme", fmt(column_parameters["binding_model"]["adsorption_rate"]["Lysozyme"]), r"$\text{m}_\text{l}^3~\text{m}_\text{s}^{-3}~\text{s}^{-1}$"],
+        ["Equilibrium constant", "Lysozyme", fmt(column_parameters["binding_model"]["adsorption_rate"]["Lysozyme"]), r"$\text{m}_\text{l}^3~\text{m}_\text{s}^{-3}$"],
     ]
 
     table = tabulate(rows, headers=headers, tablefmt="github")
