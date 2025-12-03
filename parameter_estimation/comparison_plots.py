@@ -1,12 +1,13 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
+from CADETProcess import plotting
 from CADETProcess.simulator import Cadet
 from CADETProcess.simulationResults import SimulationResults
 from CADETProcess.solution import SolutionIO, slice_solution
@@ -19,11 +20,13 @@ from utils import update_process_parameters, load_parameters_from_previous_run
 simulator = Cadet()
 
 
+# %% Helper methods
+
 def setup_figure(
     axes: str | list[str],
-    figsize: Optional[tuple[float, float]] = None,
+    style: Optional[Literal["single_column", "1.5_column", "double_column"]] = "1.5_column",
 ) -> tuple[plt.Figure, plt.Axes, ...]:
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = plotting.setup_figure(style=style)
 
     ax.set_xlabel(r'$\text{time}~/~\text{min}$')
 
@@ -39,12 +42,49 @@ def setup_figure(
             ax_new = ax.twinx()
             ax_new.spines.right.set_position(("axes", 1 + (i-1)*0.2))
 
-        ax_new.set_ylabel(fr'$c_{{\text{{{ax_i}}}}}~\text{{mM}}$')
+        ax_new.set_ylabel(fr'$c_{{\text{{{ax_i}}}}}~/~\text{{mM}}$')
 
         return_axes.append(ax_new)
 
+    fig.tight_layout()
+
     # Unpack the list of axes before returning
     return (fig, *return_axes)
+
+
+def get_all_twin_handles_labels(ax: plt.Axes) -> tuple[list, list]:
+    """
+    Return handles and labels from an axes and all of its twins.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The reference axes.
+
+    Returns
+    -------
+    handles : list
+        All line/patch artists from `ax` and its twin axes.
+    labels : list of str
+        Corresponding legend labels.
+
+    Notes
+    -----
+    Traverses the shared-axes group to find all twins, including
+    those created via `twinx()` and `twiny()`.
+    """
+    # Matplotlib groups axes that share x or y; twins belong to these groups.
+    axs = set(ax.get_shared_x_axes().get_siblings(ax))
+
+    handles = []
+    labels = []
+
+    for a in axs:
+        h, l = a.get_legend_handles_labels()
+        handles.extend(h)
+        labels.extend(l)
+
+    return handles, labels
 
 
 def update_parameters_and_simulate(
@@ -91,53 +131,57 @@ def plot_comparison(ax, solution, reference, color, label=None):
 # %% Comparison without column
 
 def plot_comparison_without_column(parameters):
-    fig_system, ax_system_acetone, ax_system_salt = setup_figure(axes=["Acetone", "Salt"])
+    with plotting.mpl_style_context():
+        fig_system, ax_system_acetone, ax_system_salt = setup_figure(axes=["Acetone", "Salt"])
 
-    from e1 import (
-        setup_process as setup_process_e1,
-        setup_reference as setup_reference_e1,
-        solution_path as solution_path_e1,
-    )
-    process_e1 = setup_process_e1()
-    reference_e1 = setup_reference_e1()
-    solution_e1 = simulate_and_get_solution(process_e1, solution_path_e1, parameters)
-    plot_comparison(ax_system_acetone, solution_e1, reference_e1, "darkblue")
+        from e1 import (
+            setup_process as setup_process_e1,
+            setup_reference as setup_reference_e1,
+            solution_path as solution_path_e1,
+        )
+        process_e1 = setup_process_e1()
+        reference_e1 = setup_reference_e1()
+        solution_e1 = simulate_and_get_solution(process_e1, solution_path_e1, parameters)
+        plot_comparison(ax_system_acetone, solution_e1, reference_e1, "darkblue", "E1")
 
-    from e2 import (
-        setup_process as setup_process_e2,
-        setup_reference as setup_reference_e2,
-        solution_path as solution_path_e2,
-    )
-    process_e2 = setup_process_e2()
-    reference_e2 = setup_reference_e2()
-    solution_e2 = simulate_and_get_solution(process_e2, solution_path_e2, parameters)
+        from e2 import (
+            setup_process as setup_process_e2,
+            setup_reference as setup_reference_e2,
+            solution_path as solution_path_e2,
+        )
+        process_e2 = setup_process_e2()
+        reference_e2 = setup_reference_e2()
+        solution_e2 = simulate_and_get_solution(process_e2, solution_path_e2, parameters)
 
-    plot_comparison(ax_system_acetone, solution_e2, reference_e2, "darkred")
+        plot_comparison(
+            ax_system_acetone, solution_e2, reference_e2, "darkred", "E2")
 
-    from e3 import (
-        setup_process as setup_process_e3,
-        setup_reference as setup_reference_e3,
-        solution_path as solution_path_e3,
-    )
-    process_e3 = setup_process_e3()
-    reference_e3 = setup_reference_e3()
-    solution_e3 = simulate_and_get_solution(process_e3, solution_path_e3, parameters)
+        from e3 import (
+            setup_process as setup_process_e3,
+            setup_reference as setup_reference_e3,
+            solution_path as solution_path_e3,
+        )
+        process_e3 = setup_process_e3()
+        reference_e3 = setup_reference_e3()
+        solution_e3 = simulate_and_get_solution(process_e3, solution_path_e3, parameters)
 
-    plot_comparison(ax_system_salt, solution_e3, reference_e3, "darkorange")
+        plot_comparison(ax_system_salt, solution_e3, reference_e3, "darkorange", "E3")
 
-    from e4 import (
-        setup_process as setup_process_e4,
-        setup_reference as setup_reference_e4,
-        solution_path as solution_path_e4,
-    )
-    process_e4 = setup_process_e4()
-    reference_e4 = setup_reference_e4()
-    solution_e4 = simulate_and_get_solution(process_e4, solution_path_e4, parameters)
+        from e4 import (
+            setup_process as setup_process_e4,
+            setup_reference as setup_reference_e4,
+            solution_path as solution_path_e4,
+        )
+        process_e4 = setup_process_e4()
+        reference_e4 = setup_reference_e4()
+        solution_e4 = simulate_and_get_solution(process_e4, solution_path_e4, parameters)
 
-    plot_comparison(ax_system_salt, solution_e4, reference_e4, "darkgreen")
+        plot_comparison(ax_system_salt, solution_e4, reference_e4, "darkgreen", "E4")
 
-    ax_system_acetone.set_xlim(0, 6)
-    fig_system.tight_layout()
+        ax_system_acetone.set_xlim(0, 6)
+        handles, labels = get_all_twin_handles_labels(ax_system_acetone)
+        ax_system_acetone.legend(handles, labels, loc="center right")
+        fig_system.tight_layout()
 
     return fig_system, ax_system_acetone, ax_system_salt
 
@@ -149,44 +193,46 @@ def plot_comparison_with_column(
     parameters_e6,
     parameters_e7,
 ):
-    fig_column, ax_column_bd, ax_column_acetone, ax_column_lysozyme = setup_figure(
-        axes=["Blue Dextran", "Acetone", "Lysozyme"],
-        figsize=(12, 6),
-    )
-    from e5 import (
-        setup_process as setup_process_e5,
-        setup_reference as setup_reference_e5,
-        solution_path as solution_path_e5,
-    )
-    process_e5 = setup_process_e5()
-    reference_e5 = setup_reference_e5()
-    solution_e5 = simulate_and_get_solution(process_e5, solution_path_e5, parameters_e5)
-    plot_comparison(ax_column_bd, solution_e5, reference_e5, "darkblue")
+    with plotting.mpl_style_context():
+        fig_column, ax_column_bd, ax_column_acetone, ax_column_lysozyme = setup_figure(
+            axes=["Blue Dextran", "Acetone", "Lysozyme"],
+        )
+        from e5 import (
+            setup_process as setup_process_e5,
+            setup_reference as setup_reference_e5,
+            solution_path as solution_path_e5,
+        )
+        process_e5 = setup_process_e5()
+        reference_e5 = setup_reference_e5()
+        solution_e5 = simulate_and_get_solution(process_e5, solution_path_e5, parameters_e5)
+        plot_comparison(ax_column_bd, solution_e5, reference_e5, "darkblue", "E5")
 
-    from e6 import (
-        setup_process as setup_process_e6,
-        setup_reference as setup_reference_e6,
-        solution_path as solution_path_e6,
-    )
-    process_e6 = setup_process_e6()
-    reference_e6 = setup_reference_e6()
-    solution_e6 = simulate_and_get_solution(process_e6, solution_path_e6, parameters_e6)
-    plot_comparison(ax_column_acetone, solution_e6, reference_e6, "darkred")
+        from e6 import (
+            setup_process as setup_process_e6,
+            setup_reference as setup_reference_e6,
+            solution_path as solution_path_e6,
+        )
+        process_e6 = setup_process_e6()
+        reference_e6 = setup_reference_e6()
+        solution_e6 = simulate_and_get_solution(process_e6, solution_path_e6, parameters_e6)
+        plot_comparison(ax_column_acetone, solution_e6, reference_e6, "darkred", "E6")
 
-    from e7 import (
-        setup_process as setup_process_e7,
-        setup_reference as setup_reference_e7,
-        solution_path as solution_path_e7,
-    )
-    process_e7 = setup_process_e7()
-    reference_e7 = setup_reference_e7()
-    solution_e7 = simulate_and_get_solution(
-        process_e7, solution_path_e7, parameters_e7, components="Lysozyme"
-    )
-    plot_comparison(ax_column_lysozyme, solution_e7, reference_e7, "darkorange")
+        from e7 import (
+            setup_process as setup_process_e7,
+            setup_reference as setup_reference_e7,
+            solution_path as solution_path_e7,
+        )
+        process_e7 = setup_process_e7()
+        reference_e7 = setup_reference_e7()
+        solution_e7 = simulate_and_get_solution(
+            process_e7, solution_path_e7, parameters_e7, components="Lysozyme"
+        )
+        plot_comparison(ax_column_lysozyme, solution_e7, reference_e7, "darkorange", "E7")
 
-    ax_column_bd.set_xlim(0, 12.5)
-    fig_column.tight_layout()
+        ax_column_bd.set_xlim(0, 12.5)
+        handles, labels = get_all_twin_handles_labels(ax_column_bd)
+        ax_column_bd.legend(handles, labels, loc="upper right")
+        fig_column.tight_layout()
 
     return fig_column, ax_column_bd, ax_column_acetone, ax_column_lysozyme
 
@@ -229,84 +275,53 @@ def plot_lysozyme(
     is_kinetic,
     use_validation=False,
 ):
-    fig_lysozyme, ax_lysozyme, ax_salt = setup_figure(axes=["Lysozyme", "Salt"])
+    with plotting.mpl_style_context():
+        fig_lysozyme, ax_lysozyme, ax_salt = setup_figure(axes=["Lysozyme", "Salt"])
 
-    from e9 import (
-        setup_references,
-        setup_lwe_processes,
-        solution_path_lysozyme,
-        solution_path_salt,
-    )
-
-    references_lysozyme, references_salt = setup_references(
-        pH,
-        use_validation=use_validation,
-    )
-    lwe_processes = setup_lwe_processes(
-        include_pore_diffusion=include_pore_diffusion,
-        is_kinetic=is_kinetic,
-        use_validation=use_validation,
-    )
-
-    for lwe_process, reference_lysozyme, reference_salt in zip(
-            lwe_processes, references_lysozyme, references_salt
-    ):
-        simulation_results = update_parameters_and_simulate(lwe_process, parameters_e9)
-
-        solution_lysozyme = extract_solution(
-            simulation_results, solution_path_lysozyme, components=["Lysozyme"]
+        from e9 import (
+            setup_references,
+            setup_lwe_processes,
+            solution_path_lysozyme,
+            solution_path_salt,
         )
-        plot_comparison(ax_lysozyme, solution_lysozyme, reference_lysozyme, "darkblue")
 
-        solution_salt = extract_solution(
-            simulation_results, solution_path_salt, components=["Salt"]
+        references_lysozyme, references_salt = setup_references(
+            pH,
+            use_validation=use_validation,
         )
-        plot_comparison(ax_salt, solution_salt, reference_salt, "darkred")
+        lwe_processes = setup_lwe_processes(
+            include_pore_diffusion=include_pore_diffusion,
+            is_kinetic=is_kinetic,
+            use_validation=use_validation,
+        )
 
+        colors = iter(plt.rcParams["axes.prop_cycle"].by_key()["color"])
 
-    ax_lysozyme.set_xlim(0, 125)
+        for lwe_process, reference_lysozyme, reference_salt in zip(
+                lwe_processes, references_lysozyme, references_salt
+        ):
+            color = next(colors)
 
-    fig_lysozyme.tight_layout()
+            cv = lwe_process.name.split("_")[2]
+            simulation_results = update_parameters_and_simulate(lwe_process, parameters_e9)
+
+            solution_lysozyme = extract_solution(
+                simulation_results, solution_path_lysozyme, components=["Lysozyme"]
+            )
+            plot_comparison(ax_lysozyme, solution_lysozyme, reference_lysozyme, color, f"{cv} CV")
+
+            solution_salt = extract_solution(
+                simulation_results, solution_path_salt, components=["Salt"]
+            )
+            plot_comparison(ax_salt, solution_salt, reference_salt, color)
+
+        ax_lysozyme.set_xlim(0, 125)
+        handles, labels = get_all_twin_handles_labels(ax_lysozyme)
+        ax_lysozyme.legend(handles, labels, loc="upper left")
+        fig_lysozyme.tight_layout()
 
     return fig_lysozyme, ax_lysozyme, ax_salt
 
-
-def plot_validation(parameters_e9, pH, include_pore_diffusion, is_kinetic):
-    fig_lysozyme, ax_lysozyme, ax_salt = setup_figure(axes=["Lysozyme", "Salt"])
-
-    from e9 import (
-        setup_references,
-        setup_lwe_processes,
-        solution_path_lysozyme,
-        solution_path_salt,
-    )
-
-    references_lysozyme, references_salt = setup_references(pH)
-    lwe_processes = setup_lwe_processes(
-        include_pore_diffusion=include_pore_diffusion, is_kinetic=is_kinetic
-    )
-
-    for lwe_process, reference_lysozyme, reference_salt in zip(
-            lwe_processes, references_lysozyme, references_salt
-    ):
-        simulation_results = update_parameters_and_simulate(lwe_process, parameters_e9)
-
-        solution_lysozyme = extract_solution(
-            simulation_results, solution_path_lysozyme, components=["Lysozyme"]
-        )
-        plot_comparison(ax_lysozyme, solution_lysozyme, reference_lysozyme, "darkblue")
-
-        solution_salt = extract_solution(
-            simulation_results, solution_path_salt, components=["Salt"]
-        )
-        plot_comparison(ax_salt, solution_salt, reference_salt, "darkred")
-
-
-    ax_lysozyme.set_xlim(0, 125)
-
-    fig_lysozyme.tight_layout()
-
-    return fig_lysozyme, ax_lysozyme, ax_salt
 
 # %% Create tables
 
