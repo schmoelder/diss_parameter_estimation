@@ -479,7 +479,7 @@ def embed_figure_in_directive(
     figure_path: os.PathLike,
     name: None,
     caption: str,
-    scale: Optional[float] = 100.0,
+    scale: Optional[int] = 100,
 ) -> str:
     """Format figure to embed it in MyST figure directive."""
     load_parameters_from_previous_run(branch_name)
