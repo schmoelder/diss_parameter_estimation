@@ -142,7 +142,7 @@ def plot_comparison_without_column(parameters):
         process_e1 = setup_process_e1()
         reference_e1 = setup_reference_e1()
         solution_e1 = simulate_and_get_solution(process_e1, solution_path_e1, parameters)
-        plot_comparison(ax_system_acetone, solution_e1, reference_e1, "darkblue", "E1")
+        plot_comparison(ax_system_acetone, solution_e1, reference_e1, "darkblue", "E1 (Acetone)")
 
         from e2 import (
             setup_process as setup_process_e2,
@@ -154,7 +154,7 @@ def plot_comparison_without_column(parameters):
         solution_e2 = simulate_and_get_solution(process_e2, solution_path_e2, parameters)
 
         plot_comparison(
-            ax_system_acetone, solution_e2, reference_e2, "darkred", "E2")
+            ax_system_acetone, solution_e2, reference_e2, "darkred", "E2 (Acetone)")
 
         from e3 import (
             setup_process as setup_process_e3,
@@ -165,7 +165,7 @@ def plot_comparison_without_column(parameters):
         reference_e3 = setup_reference_e3()
         solution_e3 = simulate_and_get_solution(process_e3, solution_path_e3, parameters)
 
-        plot_comparison(ax_system_salt, solution_e3, reference_e3, "darkorange", "E3")
+        plot_comparison(ax_system_salt, solution_e3, reference_e3, "darkorange", "E3 (Salt)")
 
         from e4 import (
             setup_process as setup_process_e4,
@@ -176,7 +176,7 @@ def plot_comparison_without_column(parameters):
         reference_e4 = setup_reference_e4()
         solution_e4 = simulate_and_get_solution(process_e4, solution_path_e4, parameters)
 
-        plot_comparison(ax_system_salt, solution_e4, reference_e4, "darkgreen", "E4")
+        plot_comparison(ax_system_salt, solution_e4, reference_e4, "darkgreen", "E4 (Salt)")
 
         ax_system_acetone.set_xlim(0, 6)
         handles, labels = get_all_twin_handles_labels(ax_system_acetone)
@@ -205,7 +205,7 @@ def plot_comparison_with_column(
         process_e5 = setup_process_e5()
         reference_e5 = setup_reference_e5()
         solution_e5 = simulate_and_get_solution(process_e5, solution_path_e5, parameters_e5)
-        plot_comparison(ax_column_bd, solution_e5, reference_e5, "darkblue", "E5")
+        plot_comparison(ax_column_bd, solution_e5, reference_e5, "darkblue", "E5 (Blue Dextran)")
 
         from e6 import (
             setup_process as setup_process_e6,
@@ -215,7 +215,7 @@ def plot_comparison_with_column(
         process_e6 = setup_process_e6()
         reference_e6 = setup_reference_e6()
         solution_e6 = simulate_and_get_solution(process_e6, solution_path_e6, parameters_e6)
-        plot_comparison(ax_column_acetone, solution_e6, reference_e6, "darkred", "E6")
+        plot_comparison(ax_column_acetone, solution_e6, reference_e6, "darkred", "E6 (Acetone)")
 
         from e7 import (
             setup_process as setup_process_e7,
@@ -227,7 +227,7 @@ def plot_comparison_with_column(
         solution_e7 = simulate_and_get_solution(
             process_e7, solution_path_e7, parameters_e7, components="Lysozyme"
         )
-        plot_comparison(ax_column_lysozyme, solution_e7, reference_e7, "darkorange", "E7")
+        plot_comparison(ax_column_lysozyme, solution_e7, reference_e7, "darkorange", "E7 (Lysozyme)")
 
         ax_column_bd.set_xlim(0, 12.5)
         handles, labels = get_all_twin_handles_labels(ax_column_bd)
