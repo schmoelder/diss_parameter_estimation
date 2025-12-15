@@ -223,14 +223,21 @@ def fit_polynomial(
     -------
     list
         Fitted polynomial coefficients in descending order of degree.
+    float
+        Coefficient of determination
     """
     # Initial guess for the coefficients (can be zeros)
     initial_guess = np.zeros(degree + 1)
 
     # Fit the polynomial model to the data
     coefficients, _ = curve_fit(polynomial_model, x_data, y_data, p0=initial_guess)
+    y_fit = polynomial_model(x_data, *coefficients)
 
-    return coefficients.tolist()
+    ss_res = np.sum((y_data - y_fit)**2)
+    ss_tot = np.sum((y_data - np.mean(y_data))**2)
+    r_squared = 1 - ss_res / ss_tot
+
+    return coefficients.tolist(), r_squared
 
 
 def apply_polynomial_calibration(

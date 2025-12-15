@@ -43,7 +43,7 @@ for salt_concentration in salt_concentrations:
 
 # %% Process data
 
-coeffcients = fit_polynomial(mean_signals, salt_concentrations, degree=2)
+coeffcients, r_squared = fit_polynomial(mean_signals, salt_concentrations, degree=2)
 
 
 def plot():
@@ -63,6 +63,16 @@ def plot():
     ax.plot(x, y, 'k')
     ax.set_xlabel(r'Conductivity / $\text{mS}~\text{cm}^{-1}$')
     ax.set_ylabel(r'Salt concentration / mM')
+
+    # Add R² as a text box
+    ax.text(
+        0.05, 0.95,  # x, y position (relative to axes)
+        f'$R^2 = {r_squared:.3f}$',  # Text to display
+        transform=ax.transAxes,  # Use axes coordinates
+        fontsize=14,
+        verticalalignment='top',
+        bbox=dict(boxstyle='round', facecolor='white', alpha=0.8)
+    )
 
     fig.tight_layout()
 
