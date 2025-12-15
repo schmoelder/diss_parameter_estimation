@@ -229,8 +229,9 @@ def plot_comparison_with_column(
         )
         plot_comparison(ax_column_lysozyme, solution_e7, reference_e7, "darkorange", "E7 (Lysozyme)")
 
-        ax_column_bd.set_xlim(0, 12.5)
         handles, labels = get_all_twin_handles_labels(ax_column_bd)
+        handles.reverse()
+        labels.reverse()
         ax_column_bd.legend(handles, labels, loc="upper right")
         fig_column.tight_layout()
 
