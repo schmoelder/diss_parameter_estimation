@@ -125,7 +125,7 @@ def simulate_and_get_solution(
 
 def plot_comparison(ax, solution, reference, color, label=None):
     ax.plot(solution.time/60, solution.solution, color=color, linestyle="-", label=label)
-    ax.plot(reference.time/60, reference.solution, color="k", linestyle=":")
+    ax.plot(reference.time/60, reference.solution, color=color, linestyle=":")
 
 
 # %% Comparison without column
