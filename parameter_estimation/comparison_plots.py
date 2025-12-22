@@ -524,17 +524,28 @@ def plot_meta_score(
 
     sum_nrmse = data.iloc[:, -4:].sum(axis=1)
     characteristic_charge = data["characteristic_charge"]
+    k_eq = data["adsorption_rate"]
 
-    fig, ax = plt.subplots()
+    fig, axs = plotting.setup_figure(n_cols=2, scale_with_subplots=True)
 
-    ax.plot(
+    ax_nu = axs[0]
+    ax_nu.plot(
         characteristic_charge, sum_nrmse,
         'k', marker="o", linestyle="None", markersize=1,
     )
-    ax.set_xlabel("Characteristic charge / -")
-    ax.set_ylabel('NRMSE / -')
-    ax.set_yscale("log")
+    ax_nu.set_xlabel("Characteristic charge / -")
+    ax_nu.set_ylabel('NRMSE / -')
+    ax_nu.set_yscale("log")
+
+    ax_k_eq = axs[1]
+    ax_k_eq.plot(
+        k_eq, sum_nrmse,
+        'k', marker="o", linestyle="None", markersize=1,
+    )
+    ax_k_eq.set_xlabel("Equilibrium constant / -")
+    ax_k_eq.set_ylabel('NRMSE / -')
+    ax_k_eq.set_yscale("log")
 
     fig.tight_layout()
 
-    return fig, ax
+    return fig, axs
