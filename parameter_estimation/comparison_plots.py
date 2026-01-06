@@ -24,9 +24,9 @@ simulator = Cadet()
 
 def setup_figure(
     axes: str | list[str],
-    style: Optional[Literal["single_column", "1.5_column", "double_column"]] = "1.5_column",
+    layout: Optional[Literal["1_col", "1.5_col", "1_col"]] = "1.5_col",
 ) -> tuple[plt.Figure, plt.Axes, ...]:
-    fig, ax = plotting.setup_figure(style=style)
+    fig, ax = plotting.setup_figure(layout=layout)
 
     ax.set_xlabel(r'$\text{time}~/~\text{min}$')
 
@@ -526,7 +526,7 @@ def plot_meta_score(
     characteristic_charge = data["characteristic_charge"]
     k_eq = data["adsorption_rate"]
 
-    fig, axs = plotting.setup_figure(n_cols=2, scale_with_subplots=True)
+    fig, axs = plotting.setup_figure(ncols=2, scale_with_subplots=True)
 
     ax_nu = axs[0]
     ax_nu.plot(
