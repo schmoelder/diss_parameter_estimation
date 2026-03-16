@@ -3,9 +3,9 @@
   "is_output_repo": false,
   "project_uuid": "e49c9559-f2ad-47f6-9ce8-b239569a9e76",
   "output_uuid": "bfc07b79-aacb-4315-8ea4-cc5de36ed364",
-  "cadet_rdm_version": "1.1.0",
+  "cadet_rdm_version": "1.1.2",
   "output_remotes": {
-    "output_folder_name": "output",
+    "output_directory_name": "output",
     "output_remotes": {
       "origin": "git@jugit.fz-juelich.de:j.schmoelder/parameter_estimation_output.git"
     }
