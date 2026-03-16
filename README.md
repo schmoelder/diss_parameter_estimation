@@ -70,5 +70,4 @@ Fragen an Lukas:
 - Eluent: B???
 - Measurement: UV
 
-The output repository can be found at:
-[output_repo](https://jugit.fz-juelich.de/j.schmoelder/parameter_estimation_output)
+The output repository can be found at: [https://github.com/schmoelder/diss_parameter_estimation_output](https://github.com/schmoelder/diss_parameter_estimation_output)
