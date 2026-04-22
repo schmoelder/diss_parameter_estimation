@@ -14,6 +14,7 @@ Status: open
 """
 
 # %% Imports
+import copy
 
 from CADETProcess.processModel import (
     ComponentSystem, StericMassAction, GeneralRateModel, LumpedRateModelWithPores
@@ -68,8 +69,13 @@ DEFAULT_OPTIONS = Options({
         "install_path": None,
         "use_dll": True,
     },
+    "optimizer_options": copy.deepcopy(optimizer_options)
 })
 
+# Override n_max_gen
+DEFAULT_OPTIONS["optimizer_options"]["n_max_gen"] = 64
+
+# Configure gradients and peaks
 gradient_lengths_cv = [4, 8, 12, 16]
 gradient_lengths_cv_validation = [6, 14]
 
@@ -226,6 +232,7 @@ def run_optimization(
     start_times,
     end_times,
     include_film_diffusion=False,
+    optimizer_options=None,
     prior_branch_name=None,
     cache_directory_base=None,
     temp_directory_base=None,
@@ -353,6 +360,7 @@ def main(repo:ProjectRepo, options: Options):
         start_times,
         end_times,
         include_film_diffusion=options.include_film_diffusion,
+        optimizer_options=options.optimizer_options,
         prior_branch_name=options.prior_branch_name,
         temp_directory_base=options._temp_directory_base,
         cache_directory_base=options._cache_directory_base,
