@@ -18,7 +18,7 @@ repo = ProjectRepo(__file__)
 
 experimental_data_branch = "2025-11-23_15-36-31_main_ab9cb48"  # experiments
 parameters_branch_e7_film_diffusion = "2026-04-21_13-07-28_main_ab1f4f5"  # limiting film diffusion
-final_parameters_branch = "2026-04-21_14-56-52_main_ab1f4f5"  # pH = 5.0
+final_parameters_branch = "2026-04-22_07-59-28_main_8ce92ef"  # pH = 5.0
 
 
 def get_experimental_data_path() -> os.PathLike:
