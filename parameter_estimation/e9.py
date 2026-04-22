@@ -52,7 +52,7 @@ solution_path_salt = "tubing_detectors.outlet"
 components = ["Lysozyme"]
 
 DEFAULT_OPTIONS = Options({
-    "pH": 4.0,
+    "pH": 5.0,
     "time_offset": 0.0,
     "use_peak_times": False,
     "include_film_diffusion": False,
@@ -362,7 +362,7 @@ def main(repo:ProjectRepo, options: Options):
 
 if __name__ == "__main__":
     options = DEFAULT_OPTIONS.copy()
-    options.pH = 4.0
+    options.pH = 5.0
     options.time_offset = 0.0
     options.use_peak_times = False
     options.include_film_diffusion = False
