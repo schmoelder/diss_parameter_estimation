@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Literal, Optional
 
 import matplotlib.pyplot as plt
@@ -8,6 +9,7 @@ import pandas as pd
 from tabulate import tabulate
 
 from CADETProcess import plotting
+from CADETProcess.optimization import OptimizationResults
 from CADETProcess.simulator import Cadet
 from CADETProcess.simulationResults import SimulationResults
 from CADETProcess.solution import SolutionIO, slice_solution
@@ -509,6 +511,43 @@ def embed_figure_in_directive(
     embedded_figure += "```"
 
     return embedded_figure
+
+
+def get_cached_results_dir(
+    study_root: os.PathLike,
+    branch_name: str,
+) -> Path:
+    """Return the cached results directory for a previous optimization run."""
+    load_parameters_from_previous_run(branch_name)
+
+    case_dir = Path(study_root) / 'output_cached' / branch_name
+    results_dirs = [
+        d for d in os.listdir(case_dir)
+        if os.path.isdir(case_dir / d) and d.startswith("results_")
+    ]
+    if not results_dirs:
+        raise FileNotFoundError(f"No results directory found for {branch_name}.")
+
+    return case_dir / sorted(results_dirs)[0]
+
+
+def load_cached_objective_results(
+    study_root: os.PathLike,
+    branch_name: str,
+) -> OptimizationResults:
+    """Load cached objective populations for plotting a previous run."""
+    results_dir = get_cached_results_dir(study_root, branch_name)
+    file_name = results_dir / "final.h5"
+    if not file_name.exists():
+        raise FileNotFoundError(f"Optimization result not found: {file_name}")
+
+    optimization_problem_stub = SimpleNamespace(
+        n_multi_criteria_decision_functions=0,
+    )
+    optimization_results = OptimizationResults(optimization_problem_stub, None)
+    optimization_results.load_results(str(file_name))
+
+    return optimization_results
 
 
 # %% Plot objectives (b&w)
