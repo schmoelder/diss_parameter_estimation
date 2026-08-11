@@ -17,7 +17,6 @@ from knauer import KnauerSystemProcess
 repo = ProjectRepo(__file__)
 
 experimental_data_branch = "2025-11-23_15-36-31_main_ab9cb48"  # experiments
-parameters_branch_e7_film_diffusion = "2026-04-21_13-07-28_main_ab1f4f5"  # limiting film diffusion
 
 
 def get_experimental_data_path() -> os.PathLike:
